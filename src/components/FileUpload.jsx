@@ -1,0 +1,127 @@
+import { useRef, useState, useCallback } from 'react'
+
+export default function FileUpload({ onFile, file, error, onReset }) {
+  const inputRef = useRef(null)
+  const [dragging, setDragging] = useState(false)
+
+  const handleFiles = useCallback(
+    (files) => {
+      if (files && files.length > 0) onFile(files[0])
+    },
+    [onFile]
+  )
+
+  const onDragOver = (e) => {
+    e.preventDefault()
+    setDragging(true)
+  }
+
+  const onDragLeave = () => setDragging(false)
+
+  const onDrop = (e) => {
+    e.preventDefault()
+    setDragging(false)
+    handleFiles(e.dataTransfer.files)
+  }
+
+  const onInputChange = (e) => handleFiles(e.target.files)
+
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">Upload Journal Entry File</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Accepts .xlsx and .xls formats</p>
+        </div>
+        {file && (
+          <button onClick={onReset} className="btn-ghost text-xs">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16M4 20L20 4" />
+            </svg>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {!file ? (
+        <div
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onClick={() => inputRef.current?.click()}
+          className={`
+            relative flex flex-col items-center justify-center gap-3
+            border-2 border-dashed rounded-xl px-6 py-12 cursor-pointer
+            transition-all duration-200
+            ${dragging
+              ? 'border-brand-500 bg-brand-50'
+              : 'border-slate-200 hover:border-brand-400 hover:bg-slate-50'
+            }
+          `}
+        >
+          <div className={`p-3 rounded-full transition-colors ${dragging ? 'bg-brand-100' : 'bg-slate-100'}`}>
+            <svg
+              className={`w-7 h-7 ${dragging ? 'text-brand-600' : 'text-slate-400'}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
+            >
+              <path
+                strokeLinecap="round" strokeLinejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium text-slate-700">
+              {dragging ? 'Drop your file here' : 'Drag & drop your file here'}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">or click to browse</p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={onInputChange}
+            className="sr-only"
+          />
+        </div>
+      ) : (
+        <div className="flex items-center gap-4 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-600 shrink-0">
+            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{formatSize(file.size)}</p>
+          </div>
+          <div className="ml-auto shrink-0">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Uploaded
+            </span>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-3 flex items-start gap-2.5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl">
+          <svg className="w-4 h-4 text-red-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-xs text-red-700">{error}</p>
+        </div>
+      )}
+    </div>
+  )
+}
