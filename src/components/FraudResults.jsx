@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 import { exportFraudReport } from '../utils/exportReport'
+import { REASON_KEYS, buildTranslatedExplanation } from '../utils/fraudTests'
 
 const REASON_BADGE = {
   'Zero / Null Amount':                'bg-red-100 text-red-700 border-red-200',
@@ -23,7 +25,7 @@ const RISK_ROW = {
   Low:    'bg-emerald-50/30 hover:bg-emerald-50/60',
 }
 
-const RISK_BADGE = {
+const RISK_BADGE_CLS = {
   High:   'bg-red-100 text-red-700 border-red-200',
   Medium: 'bg-amber-100 text-amber-700 border-amber-200',
   Low:    'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -48,37 +50,40 @@ function formatDate(val) {
   return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString()
 }
 
-function ReasonBadge({ reason }) {
+function ReasonBadge({ reason, t }) {
   const cls = REASON_BADGE[reason] || 'bg-slate-100 text-slate-700 border-slate-200'
+  const key = REASON_KEYS[reason]
+  const label = key ? t('reasons.' + key) : reason
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${cls}`}>
-      {reason}
+      {label}
     </span>
   )
 }
 
 const PAGE_SIZE = 25
 
-const TEST_OPTIONS = [
-  { label: 'All tests',                  value: '' },
-  { label: 'Zero / Null Amount',         value: 'Zero / Null Amount' },
-  { label: 'Short Narration',            value: 'Short / Missing Narration' },
-  { label: 'Unusually High Amount',      value: 'Unusually High Amount (top 5%)' },
-  { label: 'Unusually Low Amount',       value: 'Unusually Low Amount (bottom 5%)' },
-  { label: 'Weekend Entry',              value: 'Weekend Entry' },
-  { label: 'Seldom Used Account',        value: 'Seldom Used Account' },
-  { label: 'Rare User',                  value: 'Rare User' },
-  { label: 'Null / Missing Field',       value: 'Null / Missing Field' },
-  { label: 'Backdated Entry',            value: 'Backdated Entry' },
-  { label: 'Postdated Entry',            value: 'Postdated Entry' },
-  { label: 'Entry After Year-End',       value: 'Entry After Year-End' },
-  { label: 'Repeating Digit Amount',     value: 'Repeating Digit Amount' },
-]
-
 export default function FraudResults({ flaggedEntries }) {
-  const [page, setPage]           = useState(0)
+  const { t } = useLanguage()
+  const [page, setPage]             = useState(0)
   const [testFilter, setTestFilter] = useState('')
   const [riskFilter, setRiskFilter] = useState('')
+
+  const TEST_OPTIONS = [
+    { label: t('fraudResults.testAll'),            value: '' },
+    { label: t('fraudResults.testZeroAmount'),     value: 'Zero / Null Amount' },
+    { label: t('fraudResults.testShortNarration'), value: 'Short / Missing Narration' },
+    { label: t('fraudResults.testHighAmount'),     value: 'Unusually High Amount (top 5%)' },
+    { label: t('fraudResults.testLowAmount'),      value: 'Unusually Low Amount (bottom 5%)' },
+    { label: t('fraudResults.testWeekend'),        value: 'Weekend Entry' },
+    { label: t('fraudResults.testSeldomAccount'),  value: 'Seldom Used Account' },
+    { label: t('fraudResults.testRareUser'),       value: 'Rare User' },
+    { label: t('fraudResults.testNullField'),      value: 'Null / Missing Field' },
+    { label: t('fraudResults.testBackdated'),      value: 'Backdated Entry' },
+    { label: t('fraudResults.testPostdated'),      value: 'Postdated Entry' },
+    { label: t('fraudResults.testYearEnd'),        value: 'Entry After Year-End' },
+    { label: t('fraudResults.testRepeating'),      value: 'Repeating Digit Amount' },
+  ]
 
   const filtered = flaggedEntries.filter(e => {
     const passesTest = !testFilter || e.reasons.some(r =>
@@ -96,14 +101,26 @@ export default function FraudResults({ flaggedEntries }) {
 
   if (flaggedEntries.length === 0) return null
 
+  const TABLE_HEADERS = [
+    t('fraudResults.colRow'),
+    t('fraudResults.colAccount'),
+    t('fraudResults.colAmount'),
+    t('fraudResults.colPostingDate'),
+    t('fraudResults.colUser'),
+    t('fraudResults.colRisk'),
+    t('fraudResults.colScore'),
+    t('fraudResults.colTests'),
+    t('fraudResults.colExplanation'),
+  ]
+
   return (
     <div className="card">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <div className="flex-1">
-          <h2 className="text-sm font-semibold text-slate-900">Flagged Entries</h2>
+          <h2 className="text-sm font-semibold text-slate-900">{t('fraudResults.title')}</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            {filtered.length} of {flaggedEntries.length} entries shown
+            {t('fraudResults.entriesShown', { filtered: filtered.length, total: flaggedEntries.length })}
           </p>
         </div>
 
@@ -114,10 +131,10 @@ export default function FraudResults({ flaggedEntries }) {
             onChange={e => handleRiskFilter(e.target.value)}
             className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            <option value="">All risk levels</option>
-            <option value="High">High Risk</option>
-            <option value="Medium">Medium Risk</option>
-            <option value="Low">Low Risk</option>
+            <option value="">{t('fraudResults.allRisk')}</option>
+            <option value="High">{t('fraudResults.highRisk')}</option>
+            <option value="Medium">{t('fraudResults.mediumRisk')}</option>
+            <option value="Low">{t('fraudResults.lowRisk')}</option>
           </select>
 
           <select
@@ -137,7 +154,7 @@ export default function FraudResults({ flaggedEntries }) {
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            Export Excel
+            {t('fraudResults.exportExcel')}
           </button>
         </div>
       </div>
@@ -147,7 +164,7 @@ export default function FraudResults({ flaggedEntries }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-slate-100">
-              {['Row', 'Account', 'Amount', 'Posting Date', 'User', 'Risk', 'Score', 'Tests Triggered', 'Explanation'].map(h => (
+              {TABLE_HEADERS.map(h => (
                 <th
                   key={h}
                   className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap"
@@ -158,50 +175,53 @@ export default function FraudResults({ flaggedEntries }) {
             </tr>
           </thead>
           <tbody>
-            {pageEntries.map(({ rowIndex, row, reasons, riskLevel, riskScore, explanation }) => (
-              <tr
-                key={rowIndex}
-                className={`border-b border-slate-50 transition-colors ${RISK_ROW[riskLevel] || ''}`}
-              >
-                <td className="py-2.5 pr-3 text-slate-400 font-mono tabular-nums">
-                  {rowIndex + 1}
-                </td>
-                <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">
-                  {getField(row, 'Account Number') || '—'}
-                </td>
-                <td className="py-2.5 pr-3 text-slate-700 tabular-nums whitespace-nowrap">
-                  {formatAmount(getField(row, 'Amount'))}
-                </td>
-                <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap">
-                  {formatDate(getField(row, 'Posting Date'))}
-                </td>
-                <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap max-w-[100px] truncate">
-                  {getField(row, 'User') || '—'}
-                </td>
-                <td className="py-2.5 pr-3 whitespace-nowrap">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold ${RISK_BADGE[riskLevel]}`}>
-                    {riskLevel}
-                  </span>
-                </td>
-                <td className="py-2.5 pr-3 text-slate-600 font-mono tabular-nums text-center">
-                  {riskScore}
-                </td>
-                <td className="py-2.5 pr-3">
-                  <div className="flex flex-wrap gap-1">
-                    {reasons.map(r => <ReasonBadge key={r} reason={r} />)}
-                  </div>
-                </td>
-                <td className="py-2.5 pr-2 text-slate-500 max-w-[280px]">
-                  <p className="line-clamp-2" title={explanation}>{explanation}</p>
-                </td>
-              </tr>
-            ))}
+            {pageEntries.map(({ rowIndex, row, reasons, riskLevel, riskScore }) => {
+              const explanation = buildTranslatedExplanation(reasons, t)
+              return (
+                <tr
+                  key={rowIndex}
+                  className={`border-b border-slate-50 transition-colors ${RISK_ROW[riskLevel] || ''}`}
+                >
+                  <td className="py-2.5 pr-3 text-slate-400 font-mono tabular-nums">
+                    {rowIndex + 1}
+                  </td>
+                  <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">
+                    {getField(row, 'Account Number') || '—'}
+                  </td>
+                  <td className="py-2.5 pr-3 text-slate-700 tabular-nums whitespace-nowrap">
+                    {formatAmount(getField(row, 'Amount'))}
+                  </td>
+                  <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap">
+                    {formatDate(getField(row, 'Posting Date'))}
+                  </td>
+                  <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap max-w-[100px] truncate">
+                    {getField(row, 'User') || '—'}
+                  </td>
+                  <td className="py-2.5 pr-3 whitespace-nowrap">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold ${RISK_BADGE_CLS[riskLevel]}`}>
+                      {t('risk.' + riskLevel)}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-3 text-slate-600 font-mono tabular-nums text-center">
+                    {riskScore}
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <div className="flex flex-wrap gap-1">
+                      {reasons.map(r => <ReasonBadge key={r} reason={r} t={t} />)}
+                    </div>
+                  </td>
+                  <td className="py-2.5 pr-2 text-slate-500 max-w-[280px]">
+                    <p className="line-clamp-2" title={explanation}>{explanation}</p>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-center text-xs text-slate-400 py-6">No entries match the selected filters.</p>
+        <p className="text-center text-xs text-slate-400 py-6">{t('fraudResults.noMatch')}</p>
       )}
 
       {/* Pagination */}
@@ -212,17 +232,17 @@ export default function FraudResults({ flaggedEntries }) {
             disabled={page === 0}
             className="btn-ghost text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Previous
+            {t('fraudResults.previous')}
           </button>
           <span className="text-xs text-slate-500">
-            Page {page + 1} of {totalPages}
+            {t('fraudResults.page', { page: page + 1, total: totalPages })}
           </span>
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
             className="btn-ghost text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Next
+            {t('fraudResults.next')}
           </button>
         </div>
       )}

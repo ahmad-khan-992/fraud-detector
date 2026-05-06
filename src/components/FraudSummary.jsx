@@ -1,3 +1,6 @@
+import { useLanguage } from '../context/LanguageContext'
+import { REASON_KEYS } from '../utils/fraudTests'
+
 const REASON_META = {
   'Zero / Null Amount':                { dot: 'bg-red-500'      },
   'Short / Missing Narration':         { dot: 'bg-amber-500'    },
@@ -16,11 +19,19 @@ const REASON_META = {
 
 function overallRisk(pct) {
   const n = parseFloat(pct)
-  if (n >= 20) return { label: 'High Risk',   color: 'text-red-600',    bg: 'bg-red-50 border-red-200'    }
-  if (n >= 10) return { label: 'Medium Risk', color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-200'}
-  if (n > 0)   return { label: 'Low Risk',    color: 'text-emerald-600',bg: 'bg-emerald-50 border-emerald-200'}
-  return               { label: 'Clean',      color: 'text-emerald-600',bg: 'bg-emerald-50 border-emerald-200'}
+  if (n >= 20) return { key: 'highRisk',   color: 'text-red-600',    bg: 'bg-red-50 border-red-200'    }
+  if (n >= 10) return { key: 'mediumRisk', color: 'text-amber-600',  bg: 'bg-amber-50 border-amber-200'}
+  if (n > 0)   return { key: 'lowRisk',    color: 'text-emerald-600',bg: 'bg-emerald-50 border-emerald-200'}
+  return               { key: 'clean',     color: 'text-emerald-600',bg: 'bg-emerald-50 border-emerald-200'}
 }
+
+const RISK_BADGE_STYLES = {
+  High:   'bg-red-100 text-red-700 border-red-200',
+  Medium: 'bg-amber-100 text-amber-700 border-amber-200',
+  Low:    'bg-emerald-100 text-emerald-700 border-emerald-200',
+}
+
+const RISK_LABEL_KEY = { High: 'highRisk', Medium: 'mediumRisk', Low: 'lowRisk' }
 
 function MetricCard({ label, value, valueClass, sub }) {
   return (
@@ -32,21 +43,17 @@ function MetricCard({ label, value, valueClass, sub }) {
   )
 }
 
-function RiskBadge({ level, count }) {
-  const styles = {
-    High:   'bg-red-100 text-red-700 border-red-200',
-    Medium: 'bg-amber-100 text-amber-700 border-amber-200',
-    Low:    'bg-emerald-100 text-emerald-700 border-emerald-200',
-  }
+function RiskBadge({ level, count, t }) {
   return (
-    <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium ${styles[level]}`}>
-      <span>{level} Risk</span>
+    <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium ${RISK_BADGE_STYLES[level]}`}>
+      <span>{t('fraudSummary.' + RISK_LABEL_KEY[level])}</span>
       <span className="font-bold">{count}</span>
     </div>
   )
 }
 
 export default function FraudSummary({ summary }) {
+  const { t } = useLanguage()
   const { total, flagged, riskPercent, reasonCounts, riskCounts } = summary
   const risk = overallRisk(riskPercent)
 
@@ -55,54 +62,54 @@ export default function FraudSummary({ summary }) {
       {/* Top metric strip */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <MetricCard
-          label="Total Entries"
+          label={t('fraudSummary.totalEntries')}
           value={total.toLocaleString()}
-          sub="rows analysed"
+          sub={t('fraudSummary.rowsAnalysed')}
         />
         <MetricCard
-          label="Flagged Entries"
+          label={t('fraudSummary.flaggedEntries')}
           value={flagged.toLocaleString()}
-          sub="require review"
+          sub={t('fraudSummary.requireReview')}
           valueClass={flagged > 0 ? 'text-red-600' : 'text-emerald-600'}
         />
         <div className={`card flex flex-col gap-1 border ${risk.bg} col-span-2 sm:col-span-1`}>
-          <p className="text-xs font-medium text-slate-500">Flag Rate</p>
+          <p className="text-xs font-medium text-slate-500">{t('fraudSummary.flagRate')}</p>
           <p className={`text-2xl font-bold ${risk.color}`}>{riskPercent}%</p>
-          <p className={`text-xs font-semibold ${risk.color}`}>{risk.label}</p>
+          <p className={`text-xs font-semibold ${risk.color}`}>{t('fraudSummary.' + risk.key)}</p>
         </div>
       </div>
 
       {/* Risk level breakdown */}
       {flagged > 0 && (
         <div className="card">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Entries by Risk Level</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">{t('fraudSummary.entriesByRisk')}</h3>
           <div className="grid grid-cols-3 gap-2">
-            <RiskBadge level="High"   count={riskCounts.High   ?? 0} />
-            <RiskBadge level="Medium" count={riskCounts.Medium ?? 0} />
-            <RiskBadge level="Low"    count={riskCounts.Low    ?? 0} />
+            <RiskBadge level="High"   count={riskCounts.High   ?? 0} t={t} />
+            <RiskBadge level="Medium" count={riskCounts.Medium ?? 0} t={t} />
+            <RiskBadge level="Low"    count={riskCounts.Low    ?? 0} t={t} />
           </div>
-          <p className="text-xs text-slate-400 mt-2">
-            Score 6+ = High · 3–5 = Medium · 0–2 = Low
-          </p>
+          <p className="text-xs text-slate-400 mt-2">{t('fraudSummary.scoreScale')}</p>
         </div>
       )}
 
       {/* Breakdown by test */}
       {Object.keys(reasonCounts).length > 0 && (
         <div className="card">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">Flags by Test</h3>
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">{t('fraudSummary.flagsByTest')}</h3>
           <div className="space-y-2">
             {Object.entries(reasonCounts).map(([reason, count]) => {
               const meta  = REASON_META[reason] || { dot: 'bg-slate-400' }
               const pct   = total > 0 ? ((count / total) * 100).toFixed(1) : '0'
               const width = total > 0 ? Math.max((count / total) * 100, 2) : 0
+              const key   = REASON_KEYS[reason]
+              const label = key ? t('reasons.' + key) : reason
 
               return (
                 <div key={reason}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
-                      <span className="text-xs font-medium text-slate-700">{reason}</span>
+                      <span className="text-xs font-medium text-slate-700">{label}</span>
                     </div>
                     <span className="text-xs text-slate-500 tabular-nums">
                       {count} ({pct}%)
@@ -130,8 +137,8 @@ export default function FraudSummary({ summary }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-emerald-800">No issues detected</p>
-            <p className="text-xs text-emerald-600 mt-0.5">All {total.toLocaleString()} entries passed all fraud checks.</p>
+            <p className="text-sm font-semibold text-emerald-800">{t('fraudSummary.noIssues')}</p>
+            <p className="text-xs text-emerald-600 mt-0.5">{t('fraudSummary.allPassed', { total: total.toLocaleString() })}</p>
           </div>
         </div>
       )}

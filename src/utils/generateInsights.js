@@ -1,7 +1,10 @@
-export function generateInsights(summary) {
+import { REASON_KEYS } from './fraudTests'
+
+export function generateInsights(summary, t = k => k) {
   if (!summary || summary.flagged === 0) return []
 
   const { total, flagged, riskPercent, reasonCounts, riskCounts } = summary
+  const tReason = r => t(`reasons.${REASON_KEYS[r] || r}`)
   const insights = []
 
   const sorted = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])
@@ -9,17 +12,23 @@ export function generateInsights(summary) {
   if (topReason) {
     insights.push({
       type: 'warning',
-      title: 'Top Risk Indicator',
-      text: `"${topReason}" is the leading fraud signal with ${topCount} flag${topCount !== 1 ? 's' : ''}, accounting for ${((topCount / flagged) * 100).toFixed(0)}% of all flagged entries.`,
+      title: t('insights.topRiskTitle'),
+      text: t('insights.topRiskText', {
+        reason: tReason(topReason),
+        count: topCount,
+        pct: ((topCount / flagged) * 100).toFixed(0),
+      }),
     })
   }
 
   if (riskCounts.High > 0) {
-    const highPct = ((riskCounts.High / total) * 100).toFixed(1)
     insights.push({
       type: 'critical',
-      title: 'Immediate Attention Required',
-      text: `${riskCounts.High} transaction${riskCounts.High !== 1 ? 's' : ''} scored High risk (${highPct}% of dataset). These should be escalated for manual review immediately.`,
+      title: t('insights.immediateTitle'),
+      text: t('insights.immediateText', {
+        count: riskCounts.High,
+        pct: ((riskCounts.High / total) * 100).toFixed(1),
+      }),
     })
   }
 
@@ -27,8 +36,8 @@ export function generateInsights(summary) {
   if (wkd > 0) {
     insights.push({
       type: 'info',
-      title: 'Off-Hours Posting Activity',
-      text: `${wkd} entries were posted on weekends — unusual for routine GL activity and a common indicator of unauthorised or override entries.`,
+      title: t('insights.offHoursTitle'),
+      text: t('insights.offHoursText', { count: wkd }),
     })
   }
 
@@ -39,32 +48,32 @@ export function generateInsights(summary) {
   if (dateAnomaly > 0) {
     insights.push({
       type: 'warning',
-      title: 'Date Manipulation Risk',
-      text: `${dateAnomaly} entries show suspicious date patterns (backdated, postdated, or after year-end), which are commonly used to obscure the timing of transactions.`,
+      title: t('insights.dateManiTitle'),
+      text: t('insights.dateManiText', { count: dateAnomaly }),
     })
   }
 
   if (reasonCounts['Rare User'] > 0) {
     insights.push({
       type: 'info',
-      title: 'Unusual User Activity',
-      text: `${reasonCounts['Rare User']} entries were posted by infrequent users — potentially indicating access by unauthorised or override-level accounts.`,
+      title: t('insights.unusualUserTitle'),
+      text: t('insights.unusualUserText', { count: reasonCounts['Rare User'] }),
     })
   }
 
   if (reasonCounts['Seldom Used Account'] > 0) {
     insights.push({
       type: 'info',
-      title: 'Low-Frequency Account Usage',
-      text: `${reasonCounts['Seldom Used Account']} entries hit accounts that appear only once in the dataset, which can indicate dormant account manipulation.`,
+      title: t('insights.lowFreqTitle'),
+      text: t('insights.lowFreqText', { count: reasonCounts['Seldom Used Account'] }),
     })
   }
 
   if (reasonCounts['Repeating Digit Amount'] > 0) {
     insights.push({
       type: 'warning',
-      title: 'Suspicious Amount Patterns',
-      text: `${reasonCounts['Repeating Digit Amount']} entries contain amounts with repeating digits (e.g. 1,111 or 5,555) — a classic indicator of fictitious transactions or test entries left in production.`,
+      title: t('insights.suspAmountTitle'),
+      text: t('insights.suspAmountText', { count: reasonCounts['Repeating Digit Amount'] }),
     })
   }
 
@@ -72,14 +81,14 @@ export function generateInsights(summary) {
   if (flagPct < 5 && flagged > 0) {
     insights.push({
       type: 'success',
-      title: 'Low Overall Risk',
-      text: `The flag rate of ${riskPercent}% is within acceptable thresholds. Focus review efforts on the ${riskCounts.High || 0} High-risk entr${riskCounts.High !== 1 ? 'ies' : 'y'}.`,
+      title: t('insights.lowRiskTitle'),
+      text: t('insights.lowRiskText', { pct: riskPercent, highCount: riskCounts.High || 0 }),
     })
   } else if (flagPct >= 20) {
     insights.push({
       type: 'critical',
-      title: 'Elevated Portfolio Risk',
-      text: `A flag rate of ${riskPercent}% significantly exceeds normal thresholds. A comprehensive investigation of this dataset is strongly recommended.`,
+      title: t('insights.elevatedTitle'),
+      text: t('insights.elevatedText', { pct: riskPercent }),
     })
   }
 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuditProvider } from './context/AuditContext'
+import { LanguageProvider } from './context/LanguageContext'
 import AppShell from './components/layout/AppShell'
 import Dashboard from './pages/Dashboard'
 import AnalyticsPage from './pages/AnalyticsPage'
@@ -9,6 +10,7 @@ import SavedSessionsPage from './pages/SavedSessionsPage'
 export default function App() {
   return (
     <BrowserRouter>
+      <LanguageProvider>
       <AuditProvider>
         <Routes>
           <Route path="/" element={<AppShell />}>
@@ -19,6 +21,7 @@ export default function App() {
           </Route>
         </Routes>
       </AuditProvider>
+      </LanguageProvider>
     </BrowserRouter>
   )
 }

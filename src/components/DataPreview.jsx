@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 
 const PAGE_SIZE_OPTIONS = [10, 50, 100]
 
@@ -10,6 +11,7 @@ function formatCell(value) {
 }
 
 export default function DataPreview({ rows, headers, totalRows }) {
+  const { t } = useLanguage()
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
 
@@ -31,17 +33,17 @@ export default function DataPreview({ rows, headers, totalRows }) {
     <div className="card">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Data Preview</h2>
+          <h2 className="text-sm font-semibold text-slate-900">{t('dataPreview.title')}</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Showing {start + 1}–{Math.min(start + pageSize, rows.length)} of {totalRows} rows
+            {t('dataPreview.showing', { from: start + 1, to: Math.min(start + pageSize, rows.length), total: totalRows })}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
-            {totalRows.toLocaleString()} total rows
+            {totalRows.toLocaleString()} {t('dataPreview.totalRows')}
           </span>
           <label className="flex items-center gap-1.5 text-xs text-slate-500">
-            Rows per page
+            {t('dataPreview.rowsPerPage')}
             <select
               value={pageSize}
               onChange={handlePageSize}
@@ -99,7 +101,7 @@ export default function DataPreview({ rows, headers, totalRows }) {
             disabled={safePage === 1}
             className="px-3 py-1.5 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            ← Previous
+            {t('dataPreview.previous')}
           </button>
 
           <div className="flex items-center gap-1">
@@ -134,7 +136,7 @@ export default function DataPreview({ rows, headers, totalRows }) {
             disabled={safePage === totalPages}
             className="px-3 py-1.5 text-xs rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Next →
+            {t('dataPreview.next')}
           </button>
         </div>
       )}

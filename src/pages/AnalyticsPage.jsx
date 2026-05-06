@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useAudit } from '../context/AuditContext'
+import { useLanguage } from '../context/LanguageContext'
 import RiskDistributionChart from '../components/charts/RiskDistributionChart'
 import IndicatorFrequencyChart from '../components/charts/IndicatorFrequencyChart'
 import SmartInsights from '../components/SmartInsights'
 
-function EmptyState({ hasData }) {
+function EmptyState({ hasData, t }) {
   return (
     <div className="flex flex-col items-center gap-5 py-24 text-center">
       <div className="p-5 bg-slate-100 rounded-2xl">
@@ -14,19 +15,17 @@ function EmptyState({ hasData }) {
       </div>
       <div>
         <p className="text-base font-semibold text-slate-600">
-          {hasData ? 'Fraud tests not run yet' : 'No audit data yet'}
+          {hasData ? t('analyticsPage.notRunTitle') : t('analyticsPage.noDataTitle')}
         </p>
         <p className="text-sm text-slate-400 mt-1 max-w-xs">
-          {hasData
-            ? 'Your file is uploaded. Go to Upload & Analyse and click Run Tests to generate analytics.'
-            : 'Upload a GL export and run fraud tests on the Upload & Analyse page to see visual analytics here.'}
+          {hasData ? t('analyticsPage.notRunDesc') : t('analyticsPage.noDataDesc')}
         </p>
       </div>
       <Link to="/" className="btn-primary">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        {hasData ? 'Go to Upload & Analyse' : 'Get Started'}
+        {hasData ? t('analyticsPage.goToUpload') : t('analyticsPage.getStarted')}
       </Link>
     </div>
   )
@@ -49,7 +48,7 @@ function StatCard({ label, value, valueClass, sub, icon }) {
   )
 }
 
-function RunningState() {
+function RunningState({ t }) {
   return (
     <div className="flex flex-col items-center gap-5 py-24 text-center">
       <div className="p-5 bg-brand-50 rounded-2xl">
@@ -59,8 +58,8 @@ function RunningState() {
         </svg>
       </div>
       <div>
-        <p className="text-base font-semibold text-slate-600">Running fraud detection…</p>
-        <p className="text-sm text-slate-400 mt-1">Analytics will appear here in a moment.</p>
+        <p className="text-base font-semibold text-slate-600">{t('analyticsPage.runningTitle')}</p>
+        <p className="text-sm text-slate-400 mt-1">{t('analyticsPage.runningDesc')}</p>
       </div>
     </div>
   )
@@ -68,22 +67,27 @@ function RunningState() {
 
 export default function AnalyticsPage() {
   const { hasRun, isRunning, summary, rows } = useAudit()
+  const { t } = useLanguage()
 
-  if (isRunning) return <RunningState />
-  if (!hasRun) return <EmptyState hasData={rows.length > 0} />
+  if (isRunning) return <RunningState t={t} />
+  if (!hasRun) return <EmptyState hasData={rows.length > 0} t={t} />
 
   const { total, flagged, riskPercent, riskCounts, reasonCounts } = summary
   const flagPct = parseFloat(riskPercent)
   const rateColor = flagPct >= 20 ? 'text-red-600' : flagPct >= 10 ? 'text-amber-600' : flagPct > 0 ? 'text-emerald-600' : 'text-slate-400'
+  const rateSub = flagPct >= 20 ? t('analyticsPage.investigateHigh')
+                : flagPct >= 10 ? t('analyticsPage.mediumRisk')
+                : flagPct > 0  ? t('analyticsPage.lowRisk')
+                :                 t('analyticsPage.cleanDataset')
 
   return (
     <div className="space-y-6">
       {/* Summary stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
-          label="Total Entries"
+          label={t('analyticsPage.totalEntries')}
           value={total.toLocaleString()}
-          sub="rows analysed"
+          sub={t('analyticsPage.rowsAnalysed')}
           icon={
             <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125" />
@@ -91,9 +95,9 @@ export default function AnalyticsPage() {
           }
         />
         <StatCard
-          label="Flagged Entries"
+          label={t('analyticsPage.flaggedEntries')}
           value={flagged.toLocaleString()}
-          sub="require review"
+          sub={t('analyticsPage.requireReview')}
           valueClass={flagged > 0 ? 'text-amber-600' : 'text-emerald-600'}
           icon={
             <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -102,9 +106,9 @@ export default function AnalyticsPage() {
           }
         />
         <StatCard
-          label="High Risk"
+          label={t('analyticsPage.highRisk')}
           value={(riskCounts.High || 0).toLocaleString()}
-          sub="need immediate action"
+          sub={t('analyticsPage.needAction')}
           valueClass={riskCounts.High > 0 ? 'text-red-600' : 'text-slate-400'}
           icon={
             <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -113,9 +117,9 @@ export default function AnalyticsPage() {
           }
         />
         <StatCard
-          label="Flag Rate"
+          label={t('analyticsPage.flagRate')}
           value={`${riskPercent}%`}
-          sub={flagPct >= 20 ? 'High risk — investigate' : flagPct >= 10 ? 'Medium risk' : flagPct > 0 ? 'Low risk' : 'Clean dataset'}
+          sub={rateSub}
           valueClass={rateColor}
           icon={
             <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -128,14 +132,14 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h3 className="text-sm font-semibold text-slate-900">Risk Distribution</h3>
-          <p className="text-xs text-slate-500 mt-0.5 mb-4">Flagged entries segmented by risk severity</p>
+          <h3 className="text-sm font-semibold text-slate-900">{t('analyticsPage.riskDistTitle')}</h3>
+          <p className="text-xs text-slate-500 mt-0.5 mb-4">{t('analyticsPage.riskDistSub')}</p>
           <RiskDistributionChart riskCounts={riskCounts} />
         </div>
 
         <div className="card">
-          <h3 className="text-sm font-semibold text-slate-900">Fraud Indicator Frequency</h3>
-          <p className="text-xs text-slate-500 mt-0.5 mb-4">Top triggered checks across all flagged entries</p>
+          <h3 className="text-sm font-semibold text-slate-900">{t('analyticsPage.indicatorTitle')}</h3>
+          <p className="text-xs text-slate-500 mt-0.5 mb-4">{t('analyticsPage.indicatorSub')}</p>
           <IndicatorFrequencyChart reasonCounts={reasonCounts} />
         </div>
       </div>
@@ -147,8 +151,8 @@ export default function AnalyticsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
           </svg>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Smart Insights</h3>
-            <p className="text-xs text-slate-500">Automated observations derived from audit results</p>
+            <h3 className="text-sm font-semibold text-slate-900">{t('analyticsPage.insightsTitle')}</h3>
+            <p className="text-xs text-slate-500">{t('analyticsPage.insightsSub')}</p>
           </div>
         </div>
         <SmartInsights summary={summary} />

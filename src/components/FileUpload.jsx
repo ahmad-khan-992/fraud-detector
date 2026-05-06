@@ -1,29 +1,19 @@
 import { useRef, useState, useCallback } from 'react'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function FileUpload({ onFile, file, error, onReset }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
+  const { t } = useLanguage()
 
   const handleFiles = useCallback(
-    (files) => {
-      if (files && files.length > 0) onFile(files[0])
-    },
+    (files) => { if (files && files.length > 0) onFile(files[0]) },
     [onFile]
   )
 
-  const onDragOver = (e) => {
-    e.preventDefault()
-    setDragging(true)
-  }
-
+  const onDragOver  = (e) => { e.preventDefault(); setDragging(true) }
   const onDragLeave = () => setDragging(false)
-
-  const onDrop = (e) => {
-    e.preventDefault()
-    setDragging(false)
-    handleFiles(e.dataTransfer.files)
-  }
-
+  const onDrop      = (e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }
   const onInputChange = (e) => handleFiles(e.target.files)
 
   const formatSize = (bytes) => {
@@ -36,67 +26,45 @@ export default function FileUpload({ onFile, file, error, onReset }) {
     <div className="card">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Upload Journal Entry File</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Accepts .xlsx and .xls formats</p>
+          <h2 className="text-sm font-semibold text-slate-900">{t('fileUpload.title')}</h2>
+          <p className="text-xs text-slate-500 mt-0.5">{t('fileUpload.subtitle')}</p>
         </div>
         {file && (
           <button onClick={onReset} className="btn-ghost text-xs">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4l16 16M4 20L20 4" />
             </svg>
-            Clear
+            {t('fileUpload.clear')}
           </button>
         )}
       </div>
 
       {!file ? (
         <div
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
+          onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
           onClick={() => inputRef.current?.click()}
-          className={`
-            relative flex flex-col items-center justify-center gap-3
-            border-2 border-dashed rounded-xl px-6 py-12 cursor-pointer
-            transition-all duration-200
-            ${dragging
-              ? 'border-brand-500 bg-brand-50'
-              : 'border-slate-200 hover:border-brand-400 hover:bg-slate-50'
-            }
-          `}
+          className={`relative flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl px-6 py-12 cursor-pointer transition-all duration-200 ${
+            dragging ? 'border-brand-500 bg-brand-50' : 'border-slate-200 hover:border-brand-400 hover:bg-slate-50'
+          }`}
         >
           <div className={`p-3 rounded-full transition-colors ${dragging ? 'bg-brand-100' : 'bg-slate-100'}`}>
-            <svg
-              className={`w-7 h-7 ${dragging ? 'text-brand-600' : 'text-slate-400'}`}
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round" strokeLinejoin="round"
-                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-              />
+            <svg className={`w-7 h-7 ${dragging ? 'text-brand-600' : 'text-slate-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
           </div>
           <div className="text-center">
             <p className="text-sm font-medium text-slate-700">
-              {dragging ? 'Drop your file here' : 'Drag & drop your file here'}
+              {dragging ? t('fileUpload.dropHere') : t('fileUpload.dragDrop')}
             </p>
-            <p className="text-xs text-slate-400 mt-1">or click to browse</p>
+            <p className="text-xs text-slate-400 mt-1">{t('fileUpload.clickBrowse')}</p>
           </div>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={onInputChange}
-            className="sr-only"
-          />
+          <input ref={inputRef} type="file" accept=".xlsx,.xls" onChange={onInputChange} className="sr-only" />
         </div>
       ) : (
         <div className="flex items-center gap-4 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-600 shrink-0">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <div className="min-w-0">
@@ -108,7 +76,7 @@ export default function FileUpload({ onFile, file, error, onReset }) {
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
-              Uploaded
+              {t('fileUpload.uploaded')}
             </span>
           </div>
         </div>

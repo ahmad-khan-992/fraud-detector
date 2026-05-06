@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useAudit } from '../context/AuditContext'
+import { useLanguage } from '../context/LanguageContext'
 import { generateInsights } from '../utils/generateInsights'
 import { exportFraudReport } from '../utils/exportReport'
+import { REASON_KEYS } from '../utils/fraudTests'
 
 function getField(row, fieldName) {
   const target = fieldName.trim().toLowerCase()
@@ -57,7 +59,7 @@ function Divider({ label }) {
   )
 }
 
-function EmptyState({ hasData }) {
+function EmptyState({ hasData, t }) {
   return (
     <div className="flex flex-col items-center gap-5 py-24 text-center">
       <div className="p-5 bg-slate-100 rounded-2xl">
@@ -67,25 +69,23 @@ function EmptyState({ hasData }) {
       </div>
       <div>
         <p className="text-base font-semibold text-slate-600">
-          {hasData ? 'Fraud tests not run yet' : 'No report available'}
+          {hasData ? t('reportPage.notRunTitle') : t('reportPage.noReportTitle')}
         </p>
         <p className="text-sm text-slate-400 mt-1 max-w-xs">
-          {hasData
-            ? 'Your file is uploaded. Go to Upload & Analyse and click Run Tests to generate the fraud report.'
-            : 'Upload a GL export and run fraud tests on the Upload & Analyse page to generate a report.'}
+          {hasData ? t('reportPage.notRunDesc') : t('reportPage.noReportDesc')}
         </p>
       </div>
       <Link to="/" className="btn-primary">
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        {hasData ? 'Go to Upload & Analyse' : 'Get Started'}
+        {hasData ? t('reportPage.goToUpload') : t('reportPage.getStarted')}
       </Link>
     </div>
   )
 }
 
-function RunningState() {
+function RunningState({ t }) {
   return (
     <div className="flex flex-col items-center gap-5 py-24 text-center">
       <div className="p-5 bg-brand-50 rounded-2xl">
@@ -95,8 +95,8 @@ function RunningState() {
         </svg>
       </div>
       <div>
-        <p className="text-base font-semibold text-slate-600">Running fraud detection…</p>
-        <p className="text-sm text-slate-400 mt-1">Your report will appear here in a moment.</p>
+        <p className="text-base font-semibold text-slate-600">{t('reportPage.runningTitle')}</p>
+        <p className="text-sm text-slate-400 mt-1">{t('reportPage.runningDesc')}</p>
       </div>
     </div>
   )
@@ -104,12 +104,13 @@ function RunningState() {
 
 export default function ReportPage() {
   const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows } = useAudit()
+  const { t } = useLanguage()
 
-  if (isRunning) return <RunningState />
-  if (!hasRun) return <EmptyState hasData={rows.length > 0} />
+  if (isRunning) return <RunningState t={t} />
+  if (!hasRun) return <EmptyState hasData={rows.length > 0} t={t} />
 
   const { total, flagged, riskPercent, riskCounts, reasonCounts } = summary
-  const insights        = generateInsights(summary)
+  const insights        = generateInsights(summary, t)
   const keyFindings     = insights.slice(0, 4)
   const flagPct         = parseFloat(riskPercent)
   const reportDate      = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
@@ -128,6 +129,17 @@ export default function ReportPage() {
       pctTotal:   total  > 0 ? ((count / total)  * 100).toFixed(1) : '0',
     }))
 
+  const TABLE1_HEADERS = [
+    t('reportPage.colRow'), t('reportPage.colAccount'), t('reportPage.colAmount'),
+    t('reportPage.colPostingDate'), t('reportPage.colUser'), t('reportPage.colRisk'),
+    t('reportPage.colScore'), t('reportPage.colTriggered'),
+  ]
+
+  const TABLE2_HEADERS = [
+    t('reportPage.colTestName'), t('reportPage.colFlags'),
+    t('reportPage.colPctFlagged'), t('reportPage.colPctTotal'), t('reportPage.colBar'),
+  ]
+
   return (
     <div className="max-w-5xl mx-auto space-y-0">
 
@@ -136,13 +148,13 @@ export default function ReportPage() {
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-semibold text-brand-600 uppercase tracking-widest">Confidential</span>
+              <span className="text-xs font-semibold text-brand-600 uppercase tracking-widest">{t('reportPage.confidential')}</span>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
               <span className="text-xs text-slate-400">{reportDate}</span>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900">Fraud Audit Report</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{t('reportPage.title')}</h2>
             <p className="text-sm text-slate-500 mt-1">
-              Journal Entry Analysis · {fileName}
+              {t('reportPage.subtitle')} · {fileName}
             </p>
           </div>
           <div className="flex gap-2 shrink-0 no-print">
@@ -153,7 +165,7 @@ export default function ReportPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
-              Export Excel
+              {t('reportPage.exportExcel')}
             </button>
             <button
               onClick={() => window.print()}
@@ -162,13 +174,13 @@ export default function ReportPage() {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.073 48.073 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
               </svg>
-              Print
+              {t('reportPage.print')}
             </button>
           </div>
         </div>
       </div>
 
-      <Divider label="Section 1 — Executive Summary" />
+      <Divider label={t('reportPage.section1')} />
 
       {/* Executive Summary */}
       <div className="card space-y-6">
@@ -176,27 +188,27 @@ export default function ReportPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="text-center p-4 rounded-xl bg-slate-50 border border-slate-100">
             <p className="text-3xl font-bold text-slate-900 tabular-nums">{total.toLocaleString()}</p>
-            <p className="text-xs text-slate-500 mt-1 font-medium">Total Transactions</p>
+            <p className="text-xs text-slate-500 mt-1 font-medium">{t('reportPage.totalTransactions')}</p>
           </div>
           <div className="text-center p-4 rounded-xl bg-amber-50 border border-amber-100">
             <p className="text-3xl font-bold text-amber-700 tabular-nums">{flagged.toLocaleString()}</p>
-            <p className="text-xs text-amber-600 mt-1 font-medium">Flagged Entries</p>
+            <p className="text-xs text-amber-600 mt-1 font-medium">{t('reportPage.flaggedEntries')}</p>
           </div>
           <div className="text-center p-4 rounded-xl bg-red-50 border border-red-100">
             <p className="text-3xl font-bold text-red-700 tabular-nums">{riskCounts.High || 0}</p>
-            <p className="text-xs text-red-600 mt-1 font-medium">High Risk</p>
+            <p className="text-xs text-red-600 mt-1 font-medium">{t('reportPage.highRisk')}</p>
           </div>
           <div className={`text-center p-4 rounded-xl border ${flagPct >= 20 ? 'bg-red-50 border-red-100' : flagPct >= 10 ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
             <p className={`text-3xl font-bold tabular-nums ${flagPct >= 20 ? 'text-red-700' : flagPct >= 10 ? 'text-amber-700' : 'text-emerald-700'}`}>{riskPercent}%</p>
-            <p className={`text-xs mt-1 font-medium ${flagPct >= 20 ? 'text-red-600' : flagPct >= 10 ? 'text-amber-600' : 'text-emerald-600'}`}>Flag Rate</p>
+            <p className={`text-xs mt-1 font-medium ${flagPct >= 20 ? 'text-red-600' : flagPct >= 10 ? 'text-amber-600' : 'text-emerald-600'}`}>{t('reportPage.flagRate')}</p>
           </div>
         </div>
 
         {/* Risk level bar */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-slate-700">Flagged Entries by Risk Level</p>
-            <p className="text-xs text-slate-400">{flagged} total flagged</p>
+            <p className="text-xs font-semibold text-slate-700">{t('reportPage.flaggedByRisk')}</p>
+            <p className="text-xs text-slate-400">{t('reportPage.totalFlagged', { count: flagged })}</p>
           </div>
           <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
             {flagged > 0 ? (
@@ -213,7 +225,7 @@ export default function ReportPage() {
             {['High', 'Medium', 'Low'].map(level => (
               <div key={level} className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                <span className="text-xs text-slate-500">{level}: {riskCounts[level] || 0}</span>
+                <span className="text-xs text-slate-500">{t('risk.' + level)}: {riskCounts[level] || 0}</span>
               </div>
             ))}
           </div>
@@ -222,7 +234,7 @@ export default function ReportPage() {
         {/* Key findings */}
         {keyFindings.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-slate-700 mb-3">Key Findings</p>
+            <p className="text-xs font-semibold text-slate-700 mb-3">{t('reportPage.keyFindings')}</p>
             <div className="space-y-3">
               {keyFindings.map((insight, i) => (
                 <div key={i} className="flex gap-2.5">
@@ -238,20 +250,20 @@ export default function ReportPage() {
         )}
       </div>
 
-      <Divider label="Section 2 — High-Risk Transactions" />
+      <Divider label={t('reportPage.section2')} />
 
       {/* High-risk table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Top High-Risk Entries</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{t('reportPage.topEntriesTitle')}</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              {highRiskEntries.length} entries sorted by risk score · {flaggedEntries.length} total flagged
+              {t('reportPage.topEntriesSub', { count: highRiskEntries.length, total: flaggedEntries.length })}
             </p>
           </div>
           {flaggedEntries.length > 20 && (
             <Link to="/" className="text-xs text-brand-600 hover:text-brand-700 font-medium no-print">
-              View all on Dashboard →
+              {t('reportPage.viewAll')}
             </Link>
           )}
         </div>
@@ -260,7 +272,7 @@ export default function ReportPage() {
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-slate-100">
-                {['Row', 'Account', 'Amount', 'Posting Date', 'User', 'Risk', 'Score', 'Triggered Tests'].map(h => (
+                {TABLE1_HEADERS.map(h => (
                   <th key={h} className="text-left pb-2.5 pr-4 font-semibold text-slate-500 whitespace-nowrap">
                     {h}
                   </th>
@@ -277,17 +289,21 @@ export default function ReportPage() {
                   <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap max-w-[90px] truncate">{getField(row, 'User') || '—'}</td>
                   <td className="py-2.5 pr-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-0.5 rounded border text-xs font-semibold ${RISK_BADGE[riskLevel]}`}>
-                      {riskLevel}
+                      {t('risk.' + riskLevel)}
                     </span>
                   </td>
                   <td className="py-2.5 pr-4 text-slate-600 font-mono tabular-nums text-center">{riskScore}</td>
                   <td className="py-2.5 pr-2">
                     <div className="flex flex-wrap gap-1">
-                      {reasons.slice(0, 3).map(r => (
-                        <span key={r} className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap">
-                          {r.length > 22 ? r.slice(0, 22) + '…' : r}
-                        </span>
-                      ))}
+                      {reasons.slice(0, 3).map(r => {
+                        const rk = REASON_KEYS[r]
+                        const label = rk ? t('reasons.' + rk) : r
+                        return (
+                          <span key={r} className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap">
+                            {label.length > 22 ? label.slice(0, 22) + '…' : label}
+                          </span>
+                        )
+                      })}
                       {reasons.length > 3 && (
                         <span className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-xs border border-slate-200">
                           +{reasons.length - 3}
@@ -302,22 +318,22 @@ export default function ReportPage() {
         </div>
 
         {flaggedEntries.length === 0 && (
-          <p className="text-center text-xs text-slate-400 py-8">No flagged entries in this dataset.</p>
+          <p className="text-center text-xs text-slate-400 py-8">{t('reportPage.noFlagged')}</p>
         )}
       </div>
 
-      <Divider label="Section 3 — Risk Breakdown by Test" />
+      <Divider label={t('reportPage.section3')} />
 
       {/* Breakdown by test */}
       <div className="card">
-        <h3 className="text-sm font-semibold text-slate-900 mb-1">Fraud Test Results</h3>
-        <p className="text-xs text-slate-500 mb-4">Flags triggered across 11 audit checks</p>
+        <h3 className="text-sm font-semibold text-slate-900 mb-1">{t('reportPage.testResultsTitle')}</h3>
+        <p className="text-xs text-slate-500 mb-4">{t('reportPage.testResultsSub')}</p>
 
         <div className="overflow-x-auto -mx-6 px-6">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-slate-100">
-                {['Test Name', 'Flags', '% of Flagged', '% of Total', 'Bar'].map(h => (
+                {TABLE2_HEADERS.map(h => (
                   <th key={h} className="text-left pb-2.5 pr-4 font-semibold text-slate-500 whitespace-nowrap">
                     {h}
                   </th>
@@ -325,25 +341,29 @@ export default function ReportPage() {
               </tr>
             </thead>
             <tbody>
-              {breakdownRows.map(({ name, count, pctFlagged, pctTotal }) => (
-                <tr key={name} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                  <td className="py-2.5 pr-4 font-medium text-slate-700 whitespace-nowrap">{name}</td>
-                  <td className="py-2.5 pr-4 text-slate-900 font-semibold tabular-nums">{count}</td>
-                  <td className="py-2.5 pr-4 text-slate-500 tabular-nums">{pctFlagged}%</td>
-                  <td className="py-2.5 pr-4 text-slate-400 tabular-nums">{pctTotal}%</td>
-                  <td className="py-2.5 pr-2 w-32">
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-brand-500 rounded-full transition-all"
-                        style={{ width: `${Math.max(parseFloat(pctFlagged), 2)}%` }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {breakdownRows.map(({ name, count, pctFlagged, pctTotal }) => {
+                const rk = REASON_KEYS[name]
+                const label = rk ? t('reasons.' + rk) : name
+                return (
+                  <tr key={name} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                    <td className="py-2.5 pr-4 font-medium text-slate-700 whitespace-nowrap">{label}</td>
+                    <td className="py-2.5 pr-4 text-slate-900 font-semibold tabular-nums">{count}</td>
+                    <td className="py-2.5 pr-4 text-slate-500 tabular-nums">{pctFlagged}%</td>
+                    <td className="py-2.5 pr-4 text-slate-400 tabular-nums">{pctTotal}%</td>
+                    <td className="py-2.5 pr-2 w-32">
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-brand-500 rounded-full transition-all"
+                          style={{ width: `${Math.max(parseFloat(pctFlagged), 2)}%` }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
               {breakdownRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-400">No fraud flags detected.</td>
+                  <td colSpan={5} className="py-6 text-center text-slate-400">{t('reportPage.noFlags')}</td>
                 </tr>
               )}
             </tbody>
@@ -354,9 +374,7 @@ export default function ReportPage() {
       {/* Disclaimer */}
       <div className="px-1 pb-4">
         <p className="text-xs text-slate-400 leading-relaxed">
-          This report is generated automatically by AuditIQ and is intended as a starting point for further investigation.
-          All flagged items require professional judgement before any action is taken.
-          Generated on {reportDate}.
+          {t('reportPage.disclaimer', { date: reportDate })}
         </p>
       </div>
     </div>

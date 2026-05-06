@@ -1,3 +1,4 @@
+import { useLanguage } from '../context/LanguageContext'
 import { generateInsights } from '../utils/generateInsights'
 
 function InsightIcon({ type }) {
@@ -31,11 +32,12 @@ const STYLES = {
 }
 
 export default function SmartInsights({ summary }) {
-  const insights = generateInsights(summary)
+  const { t } = useLanguage()
+  const insights = generateInsights(summary, t)
 
   if (insights.length === 0) {
     return (
-      <p className="text-sm text-slate-400 py-4 text-center">Run fraud tests to generate insights.</p>
+      <p className="text-sm text-slate-400 py-4 text-center">{t('smartInsights.empty')}</p>
     )
   }
 

@@ -16,6 +16,32 @@ function parseDate(value) {
   return null
 }
 
+export const REASON_KEYS = {
+  'Zero / Null Amount':               'zeroAmount',
+  'Short / Missing Narration':        'shortNarration',
+  'Unusually High Amount (top 5%)':   'highAmount',
+  'Unusually Low Amount (bottom 5%)': 'lowAmount',
+  'Weekend Entry (Saturday)':         'weekendSat',
+  'Weekend Entry (Sunday)':           'weekendSun',
+  'Seldom Used Account':              'seldomAccount',
+  'Rare User':                        'rareUser',
+  'Null / Missing Field':             'nullField',
+  'Backdated Entry':                  'backdated',
+  'Postdated Entry':                  'postdated',
+  'Entry After Year-End':             'yearEnd',
+  'Repeating Digit Amount':           'repeatingDigit',
+}
+
+export function buildTranslatedExplanation(reasons, t) {
+  if (!reasons.length) return ''
+  const parts = reasons.map(r => t(`reasonPhrases.${REASON_KEYS[r] || 'unknown'}`))
+  const prefix = t('explanationPrefix')
+  const and    = t('explanationAnd')
+  if (parts.length === 1) return `${prefix} ${parts[0]}.`
+  const last = parts.pop()
+  return `${prefix} ${parts.join(', ')} ${and} ${last}.`
+}
+
 export const RISK_SCORE_MAP = {
   'Zero / Null Amount':                3,
   'Short / Missing Narration':         1,
@@ -290,9 +316,8 @@ export function runAllTests(rows) {
   return Array.from(byIndex.values())
     .sort((a, b) => a.rowIndex - b.rowIndex)
     .map(entry => {
-      const riskScore   = entry.reasons.reduce((sum, r) => sum + (RISK_SCORE_MAP[r] || 1), 0)
-      const riskLevel   = getRiskLevel(riskScore)
-      const explanation = buildExplanation(entry.reasons)
-      return { ...entry, riskScore, riskLevel, explanation }
+      const riskScore = entry.reasons.reduce((sum, r) => sum + (RISK_SCORE_MAP[r] || 1), 0)
+      const riskLevel = getRiskLevel(riskScore)
+      return { ...entry, riskScore, riskLevel }
     })
 }

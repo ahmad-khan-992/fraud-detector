@@ -4,10 +4,12 @@ import Sidebar from './Sidebar'
 import Topbar from './Topbar'
 import { useAudit } from '../../context/AuditContext'
 import { useReportStorage } from '../../hooks/useReportStorage'
+import { useLanguage } from '../../context/LanguageContext'
 
 export default function AppShell() {
   const { summary, flaggedEntries, hasRun, file, loadedSessionName } = useAudit()
   const { savedSessions, saveSession, deleteSession } = useReportStorage()
+  const { t } = useLanguage()
   const [toast, setToast] = useState(null)
 
   const canSave = hasRun && (!!file || !!loadedSessionName)
@@ -16,7 +18,7 @@ export default function AppShell() {
     if (!hasRun) return
     const fileName = file?.name || loadedSessionName || 'Audit Report'
     saveSession(summary, flaggedEntries, fileName)
-    setToast('Session saved successfully')
+    setToast(t('shell.sessionSaved'))
     setTimeout(() => setToast(null), 3000)
   }, [summary, flaggedEntries, hasRun, file, loadedSessionName, saveSession])
 

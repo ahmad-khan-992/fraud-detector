@@ -19,42 +19,12 @@ function isEmpty(v) {
 }
 
 const COLUMN_RULES = {
-  'Amount': {
-    expectedType: 'Number',
-    description: 'Must be a numeric value',
-    errorHint: 'Contains text or blank values instead of numbers',
-    test: v => typeof v === 'number' && !isNaN(v),
-  },
-  'Posting Date': {
-    expectedType: 'Date',
-    description: 'Must be a valid date',
-    errorHint: 'Contains text or invalid values instead of dates',
-    test: v => isValidDate(v),
-  },
-  'Effective Date': {
-    expectedType: 'Date',
-    description: 'Must be a valid date',
-    errorHint: 'Contains text or invalid values instead of dates',
-    test: v => isValidDate(v),
-  },
-  'Account Number': {
-    expectedType: 'Non-empty',
-    description: 'Must not be blank',
-    errorHint: 'Contains blank or missing account numbers',
-    test: v => !isEmpty(v),
-  },
-  'JE Narration': {
-    expectedType: 'Text',
-    description: 'Must not be blank',
-    errorHint: 'Contains blank or missing narrations',
-    test: v => !isEmpty(v),
-  },
-  'User': {
-    expectedType: 'Text',
-    description: 'Must not be blank',
-    errorHint: 'Contains blank or missing user names',
-    test: v => !isEmpty(v),
-  },
+  'Amount':         { ruleKey: 'amount',        expectedType: 'Number',    test: v => typeof v === 'number' && !isNaN(v) },
+  'Posting Date':   { ruleKey: 'postingDate',   expectedType: 'Date',      test: v => isValidDate(v) },
+  'Effective Date': { ruleKey: 'effectiveDate', expectedType: 'Date',      test: v => isValidDate(v) },
+  'Account Number': { ruleKey: 'accountNumber', expectedType: 'Non-empty', test: v => !isEmpty(v) },
+  'JE Narration':   { ruleKey: 'jeNarration',   expectedType: 'Text',      test: v => !isEmpty(v) },
+  'User':           { ruleKey: 'user',           expectedType: 'Text',      test: v => !isEmpty(v) },
 }
 
 /**
@@ -101,14 +71,12 @@ export function validateData(rows, headers) {
 
       return {
         column: col,
+        ruleKey: rule.ruleKey,
         expectedType: rule.expectedType,
-        description: rule.description,
-        errorHint: rule.errorHint,
         total,
         invalidCount,
         invalidPercent,
         examples,
-        // severity: green = 0 bad, amber = <10%, red = >=10%
         severity: invalidCount === 0 ? 'pass' : parseFloat(invalidPercent) < 10 ? 'warn' : 'fail',
       }
     })
