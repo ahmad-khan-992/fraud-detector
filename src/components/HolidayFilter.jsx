@@ -83,9 +83,6 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
   const minInput = dataDateRange
     ? `${dataDateRange.min.getFullYear()}-${String(dataDateRange.min.getMonth()+1).padStart(2,'0')}-${String(dataDateRange.min.getDate()).padStart(2,'0')}`
     : undefined
-  const maxInput = dataDateRange
-    ? `${dataDateRange.max.getFullYear()}-${String(dataDateRange.max.getMonth()+1).padStart(2,'0')}-${String(dataDateRange.max.getDate()).padStart(2,'0')}`
-    : undefined
 
   return (
     <div className="card">
@@ -166,7 +163,6 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
           type="date"
           value={inputDate}
           min={minInput}
-          max={maxInput}
           onChange={e => setInputDate(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t('holidayFilter.addPlaceholder')}

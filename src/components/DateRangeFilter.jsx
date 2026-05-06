@@ -49,7 +49,7 @@ export default function DateRangeFilter({
   }
 
   const minInput = dataDateRange ? toInputValue(dataDateRange.min) : ''
-  const maxInput = dataDateRange ? toInputValue(dataDateRange.max) : ''
+  const maxInput = toInputValue(new Date())
 
   return (
     <div className="card">
