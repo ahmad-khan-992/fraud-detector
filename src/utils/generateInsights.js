@@ -85,6 +85,14 @@ export function generateInsights(summary, t = k => k) {
     })
   }
 
+  if (reasonCounts['Amount Above Threshold'] > 0) {
+    insights.push({
+      type: 'critical',
+      title: t('insights.amountThresholdTitle'),
+      text: t('insights.amountThresholdText', { count: reasonCounts['Amount Above Threshold'] }),
+    })
+  }
+
   const flagPct = parseFloat(riskPercent)
   if (flagPct < 5 && flagged > 0) {
     insights.push({

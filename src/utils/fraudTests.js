@@ -38,6 +38,7 @@ export const REASON_KEYS = {
   'Entry After Year-End':             'yearEnd',
   'Repeating Digit Amount':           'repeatingDigit',
   'Holiday Entry':                    'holidayEntry',
+  'Amount Above Threshold':           'amountThreshold',
 }
 
 export function buildTranslatedExplanation(reasons, t) {
@@ -65,6 +66,7 @@ export const RISK_SCORE_MAP = {
   'Entry After Year-End':              3,
   'Repeating Digit Amount':            2,
   'Holiday Entry':                     2,
+  'Amount Above Threshold':            2,
 }
 
 export function getRiskLevel(score) {
@@ -91,6 +93,7 @@ export function buildExplanation(reasons) {
     'Entry After Year-End':             'it was posted after the fiscal year-end',
     'Repeating Digit Amount':           'the amount contains a suspicious repeating digit pattern',
     'Holiday Entry':                    'it was posted on a company holiday or public holiday',
+    'Amount Above Threshold':           'the amount exceeds the configured review threshold',
   }
 
   const parts = reasons.map(r => PHRASES[r] || r.toLowerCase())
@@ -312,9 +315,26 @@ export function testHolidayEntries(rows, holidayDates) {
   return flags
 }
 
+// ─── Test 13: Amount Above Threshold ─────────────────────────────────────────
+export function testAmountAboveThreshold(rows, maxAmount) {
+  if (maxAmount === null || maxAmount === undefined || maxAmount === '' || isNaN(Number(maxAmount))) return []
+  const threshold = Number(maxAmount)
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    const raw = getField(rows[i], 'Amount')
+    if (raw === null || raw === undefined || raw === '') continue
+    const amount = Number(raw)
+    if (!isNaN(amount) && Math.abs(amount) > threshold) {
+      flags.push({ rowIndex: i, row: rows[i], reason: 'Amount Above Threshold' })
+    }
+  }
+  return flags
+}
+
 // ─── Aggregator ───────────────────────────────────────────────────────────────
 export function runAllTests(rows, options = {}) {
   const holidayDates = options.holidayDates instanceof Set ? options.holidayDates : new Set(options.holidayDates || [])
+  const maxAmount    = options.maxAmount ?? null
 
   const allFlags = [
     ...testZeroAmount(rows),
@@ -329,6 +349,7 @@ export function runAllTests(rows, options = {}) {
     ...testAfterYearEnd(rows),
     ...testRepeatingDigits(rows),
     ...testHolidayEntries(rows, holidayDates),
+    ...testAmountAboveThreshold(rows, maxAmount),
   ]
 
   const byIndex = new Map()

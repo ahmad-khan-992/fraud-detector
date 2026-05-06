@@ -18,6 +18,7 @@ const REASON_BADGE = {
   'Entry After Year-End':              'bg-red-300 text-red-900 border-red-400',
   'Repeating Digit Amount':            'bg-teal-100 text-teal-700 border-teal-200',
   'Holiday Entry':                     'bg-rose-200 text-rose-800 border-rose-300',
+  'Amount Above Threshold':            'bg-violet-100 text-violet-700 border-violet-200',
 }
 
 const RISK_ROW = {
@@ -85,6 +86,7 @@ export default function FraudResults({ flaggedEntries }) {
     { label: t('fraudResults.testYearEnd'),        value: 'Entry After Year-End' },
     { label: t('fraudResults.testRepeating'),      value: 'Repeating Digit Amount' },
     { label: t('fraudResults.testHoliday'),        value: 'Holiday Entry' },
+    { label: t('fraudResults.testAmountThreshold'), value: 'Amount Above Threshold' },
   ]
 
   const filtered = flaggedEntries.filter(e => {

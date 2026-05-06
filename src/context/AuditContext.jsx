@@ -21,6 +21,7 @@ export function AuditProvider({ children }) {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
   const [holidays, setHolidays] = useState([])  // array of 'YYYY-MM-DD' strings
+  const [maxAmount, setMaxAmount] = useState('')  // empty = disabled
   const [resultsDirty, setResultsDirty] = useState(false)
 
   const {
@@ -78,8 +79,8 @@ export function AuditProvider({ children }) {
   // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun, { holidayDates: new Set(holidays) })
-  }, [runTests, holidays])
+    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount })
+  }, [runTests, holidays, maxAmount])
 
   // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
   useEffect(() => {
@@ -91,7 +92,7 @@ export function AuditProvider({ children }) {
   // Mark results stale when date filter OR holidays change after tests have run
   useEffect(() => {
     if (hasRunRef.current) setResultsDirty(true)
-  }, [dateFrom, dateTo, holidays])
+  }, [dateFrom, dateTo, holidays, maxAmount])
 
   const handleReset = useCallback(() => {
     resetFile()
@@ -100,6 +101,7 @@ export function AuditProvider({ children }) {
     setDateFrom('')
     setDateTo('')
     setHolidays([])
+    setMaxAmount('')
     setResultsDirty(false)
     hasRunRef.current = false
   }, [resetFile, resetTests])
@@ -123,6 +125,7 @@ export function AuditProvider({ children }) {
       dateFrom, dateTo, setDateFrom, setDateTo,
       filteredRows, dataDateRange, resultsDirty,
       holidays, addHoliday, removeHoliday, clearHolidays,
+      maxAmount, setMaxAmount,
     }}>
       {children}
     </AuditContext.Provider>

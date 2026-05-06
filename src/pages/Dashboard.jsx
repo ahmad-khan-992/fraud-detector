@@ -5,6 +5,7 @@ import ColumnValidation from '../components/ColumnValidation'
 import DataPreview from '../components/DataPreview'
 import DateRangeFilter from '../components/DateRangeFilter'
 import HolidayFilter from '../components/HolidayFilter'
+import AmountFilter from '../components/AmountFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import FraudSummary from '../components/FraudSummary'
 import FraudResults from '../components/FraudResults'
@@ -44,6 +45,7 @@ export default function Dashboard() {
     dateFrom, dateTo, setDateFrom, setDateTo,
     filteredRows, dataDateRange, resultsDirty,
     holidays, addHoliday, removeHoliday, clearHolidays,
+    maxAmount, setMaxAmount,
   } = useAudit()
 
   const hasData       = rows.length > 0
@@ -145,6 +147,15 @@ export default function Dashboard() {
               clearHolidays={clearHolidays}
               filteredRows={filteredRows}
               dataDateRange={dataDateRange}
+            />
+          )}
+
+          {/* Amount threshold filter */}
+          {isColumnValid && (
+            <AmountFilter
+              maxAmount={maxAmount}
+              setMaxAmount={setMaxAmount}
+              filteredRows={filteredRows}
             />
           )}
         </>

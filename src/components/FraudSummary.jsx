@@ -16,6 +16,7 @@ const REASON_META = {
   'Entry After Year-End':              { dot: 'bg-red-900'      },
   'Repeating Digit Amount':            { dot: 'bg-teal-500'     },
   'Holiday Entry':                     { dot: 'bg-rose-600'     },
+  'Amount Above Threshold':            { dot: 'bg-violet-600'   },
 }
 
 function overallRisk(pct) {
