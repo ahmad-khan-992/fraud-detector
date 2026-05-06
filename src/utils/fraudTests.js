@@ -16,6 +16,13 @@ function parseDate(value) {
   return null
 }
 
+function dateToKey(date) {
+  const yyyy = date.getFullYear()
+  const mm   = String(date.getMonth() + 1).padStart(2, '0')
+  const dd   = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 export const REASON_KEYS = {
   'Zero / Null Amount':               'zeroAmount',
   'Short / Missing Narration':        'shortNarration',
@@ -30,6 +37,7 @@ export const REASON_KEYS = {
   'Postdated Entry':                  'postdated',
   'Entry After Year-End':             'yearEnd',
   'Repeating Digit Amount':           'repeatingDigit',
+  'Holiday Entry':                    'holidayEntry',
 }
 
 export function buildTranslatedExplanation(reasons, t) {
@@ -56,6 +64,7 @@ export const RISK_SCORE_MAP = {
   'Postdated Entry':                   2,
   'Entry After Year-End':              3,
   'Repeating Digit Amount':            2,
+  'Holiday Entry':                     2,
 }
 
 export function getRiskLevel(score) {
@@ -81,6 +90,7 @@ export function buildExplanation(reasons) {
     'Postdated Entry':                  'the posting date is set in the future',
     'Entry After Year-End':             'it was posted after the fiscal year-end',
     'Repeating Digit Amount':           'the amount contains a suspicious repeating digit pattern',
+    'Holiday Entry':                    'it was posted on a company holiday or public holiday',
   }
 
   const parts = reasons.map(r => PHRASES[r] || r.toLowerCase())
@@ -248,7 +258,6 @@ export function testPostdatedEntries(rows) {
 }
 
 // ─── Test 10: Entries After Year-End ──────────────────────────────────────────
-// Flags prior-year effective date entries posted in Q1 of the following year
 export function testAfterYearEnd(rows) {
   const flags = []
 
@@ -289,8 +298,24 @@ export function testRepeatingDigits(rows) {
   return flags
 }
 
+// ─── Test 12: Holiday Entries ─────────────────────────────────────────────────
+export function testHolidayEntries(rows, holidayDates) {
+  if (!holidayDates || holidayDates.size === 0) return []
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    const date = parseDate(getField(rows[i], 'Posting Date'))
+    if (!date) continue
+    if (holidayDates.has(dateToKey(date))) {
+      flags.push({ rowIndex: i, row: rows[i], reason: 'Holiday Entry' })
+    }
+  }
+  return flags
+}
+
 // ─── Aggregator ───────────────────────────────────────────────────────────────
-export function runAllTests(rows) {
+export function runAllTests(rows, options = {}) {
+  const holidayDates = options.holidayDates instanceof Set ? options.holidayDates : new Set(options.holidayDates || [])
+
   const allFlags = [
     ...testZeroAmount(rows),
     ...testShortNarration(rows),
@@ -303,6 +328,7 @@ export function runAllTests(rows) {
     ...testPostdatedEntries(rows),
     ...testAfterYearEnd(rows),
     ...testRepeatingDigits(rows),
+    ...testHolidayEntries(rows, holidayDates),
   ]
 
   const byIndex = new Map()

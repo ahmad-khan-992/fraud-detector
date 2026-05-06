@@ -19,7 +19,8 @@ const AuditContext = createContext(null)
 export function AuditProvider({ children }) {
   const [loadedSessionName, setLoadedSessionName] = useState(null)
   const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+  const [holidays, setHolidays] = useState([])  // array of 'YYYY-MM-DD' strings
   const [resultsDirty, setResultsDirty] = useState(false)
 
   const {
@@ -33,7 +34,6 @@ export function AuditProvider({ children }) {
     runTests, reset: resetTests, summary, loadResults,
   } = useFraudTests()
 
-  // Keep a ref that's always current so the date-change effect can read it without being a dep
   const hasRunRef = useRef(false)
   useEffect(() => { hasRunRef.current = hasRun }, [hasRun])
 
@@ -44,14 +44,14 @@ export function AuditProvider({ children }) {
     const to   = dateTo   ? new Date(dateTo   + 'T23:59:59') : null
     return rows.filter(row => {
       const d = parseDate(row['Posting Date'])
-      if (!d) return true  // rows without a parseable date are always included
+      if (!d) return true
       if (from && d < from) return false
       if (to   && d > to)   return false
       return true
     })
   }, [rows, dateFrom, dateTo])
 
-  // Min / max posting dates from the full (unfiltered) dataset — used for picker hints
+  // Min / max posting dates from the full dataset — for picker hints
   const dataDateRange = useMemo(() => {
     if (!rows.length) return null
     let min = null, max = null
@@ -64,25 +64,34 @@ export function AuditProvider({ children }) {
     return min ? { min, max } : null
   }, [rows])
 
-  // Wrap runTests so it clears the dirty flag at the same time
+  // Holiday helpers exposed to components
+  const addHoliday = useCallback((dateStr) => {
+    setHolidays(prev => prev.includes(dateStr) ? prev : [...prev, dateStr].sort())
+  }, [])
+
+  const removeHoliday = useCallback((dateStr) => {
+    setHolidays(prev => prev.filter(d => d !== dateStr))
+  }, [])
+
+  const clearHolidays = useCallback(() => setHolidays([]), [])
+
+  // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun)
-  }, [runTests])
+    runTests(rowsToRun, { holidayDates: new Set(holidays) })
+  }, [runTests, holidays])
 
-  // Auto-run when a valid file is fully parsed (or when filteredRows change and nothing has run yet)
+  // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
   useEffect(() => {
     if (!loading && filteredRows.length > 0 && missingColumns.length === 0 && !hasRun && !isRunning) {
       runAudit(filteredRows)
     }
   }, [loading, filteredRows, missingColumns, hasRun, isRunning, runAudit])
 
-  // Mark results stale whenever the date filter changes after tests have already run
+  // Mark results stale when date filter OR holidays change after tests have run
   useEffect(() => {
-    if (hasRunRef.current) {
-      setResultsDirty(true)
-    }
-  }, [dateFrom, dateTo])
+    if (hasRunRef.current) setResultsDirty(true)
+  }, [dateFrom, dateTo, holidays])
 
   const handleReset = useCallback(() => {
     resetFile()
@@ -90,6 +99,7 @@ export function AuditProvider({ children }) {
     setLoadedSessionName(null)
     setDateFrom('')
     setDateTo('')
+    setHolidays([])
     setResultsDirty(false)
     hasRunRef.current = false
   }, [resetFile, resetTests])
@@ -100,6 +110,7 @@ export function AuditProvider({ children }) {
     setLoadedSessionName(session.fileName)
     setDateFrom('')
     setDateTo('')
+    setHolidays([])
     setResultsDirty(false)
   }, [resetFile, loadResults])
 
@@ -111,6 +122,7 @@ export function AuditProvider({ children }) {
       handleReset, loadSession, loadedSessionName,
       dateFrom, dateTo, setDateFrom, setDateTo,
       filteredRows, dataDateRange, resultsDirty,
+      holidays, addHoliday, removeHoliday, clearHolidays,
     }}>
       {children}
     </AuditContext.Provider>

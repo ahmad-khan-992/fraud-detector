@@ -19,9 +19,9 @@ export default function Header() {
         </div>
         <div>
           <h1 className="text-base font-semibold text-slate-900 leading-tight">
-            Journal Entry Testing Tool
+            Anomaly Scanner
           </h1>
-          <p className="text-xs text-slate-500">Audit &amp; Fraud Analytics</p>
+          <p className="text-xs text-slate-500">Audit &amp; Anomaly Detection</p>
         </div>
       </div>
     </header>

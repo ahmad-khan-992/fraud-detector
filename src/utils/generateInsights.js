@@ -77,6 +77,14 @@ export function generateInsights(summary, t = k => k) {
     })
   }
 
+  if (reasonCounts['Holiday Entry'] > 0) {
+    insights.push({
+      type: 'warning',
+      title: t('insights.holidayTitle'),
+      text: t('insights.holidayText', { count: reasonCounts['Holiday Entry'] }),
+    })
+  }
+
   const flagPct = parseFloat(riskPercent)
   if (flagPct < 5 && flagged > 0) {
     insights.push({

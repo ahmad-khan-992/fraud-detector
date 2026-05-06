@@ -4,6 +4,7 @@ import FileUpload from '../components/FileUpload'
 import ColumnValidation from '../components/ColumnValidation'
 import DataPreview from '../components/DataPreview'
 import DateRangeFilter from '../components/DateRangeFilter'
+import HolidayFilter from '../components/HolidayFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import FraudSummary from '../components/FraudSummary'
 import FraudResults from '../components/FraudResults'
@@ -42,6 +43,7 @@ export default function Dashboard() {
     loadedSessionName,
     dateFrom, dateTo, setDateFrom, setDateTo,
     filteredRows, dataDateRange, resultsDirty,
+    holidays, addHoliday, removeHoliday, clearHolidays,
   } = useAudit()
 
   const hasData       = rows.length > 0
@@ -130,6 +132,18 @@ export default function Dashboard() {
               setDateTo={setDateTo}
               filteredRows={filteredRows}
               totalRows={rows.length}
+              dataDateRange={dataDateRange}
+            />
+          )}
+
+          {/* Holiday filter */}
+          {isColumnValid && (
+            <HolidayFilter
+              holidays={holidays}
+              addHoliday={addHoliday}
+              removeHoliday={removeHoliday}
+              clearHolidays={clearHolidays}
+              filteredRows={filteredRows}
               dataDateRange={dataDateRange}
             />
           )}

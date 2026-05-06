@@ -7,11 +7,11 @@ export function useFraudTests() {
   const [hasRun, setHasRun]                 = useState(false)
   const [isRunning, setIsRunning]           = useState(false)
 
-  const runTests = useCallback((rows) => {
+  const runTests = useCallback((rows, options = {}) => {
     setIsRunning(true)
     setHasRun(false)
     setTimeout(() => {
-      const results = runAllTests(rows)
+      const results = runAllTests(rows, options)
       setFlaggedEntries(results)
       setTotalRows(rows.length)
       setHasRun(true)
