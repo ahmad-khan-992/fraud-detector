@@ -297,6 +297,22 @@ export const translations = {
     smartInsights: {
       empty: 'Run fraud tests to generate insights.',
     },
+    dateFilter: {
+      title: 'Date Range Filter',
+      subtitle: 'Narrow the analysis to entries within a specific posting date range',
+      from: 'From',
+      to: 'To',
+      clear: 'Clear',
+      rowsInRange: '{{count}} of {{total}} rows match',
+      dataRange: 'Data spans',
+      noDateColumn: 'No Posting Date column detected — upload a file with valid date data to use this filter',
+      staleWarning: 'Date range changed — re-run tests to update results',
+      allRows: 'All {{total}} rows included',
+      last30: 'Last 30 d',
+      thisYear: 'This Year',
+      prevYear: 'Prev Year',
+      noRowsWarning: 'No rows match the selected date range',
+    },
   },
 
   fr: {
@@ -596,6 +612,22 @@ export const translations = {
     },
     smartInsights: {
       empty: 'Exécutez les tests de fraude pour générer des aperçus.',
+    },
+    dateFilter: {
+      title: 'Filtre de Plage de Dates',
+      subtitle: "Limitez l'analyse aux écritures dans une plage de dates de comptabilisation",
+      from: 'Du',
+      to: 'Au',
+      clear: 'Effacer',
+      rowsInRange: '{{count}} sur {{total}} lignes correspondent',
+      dataRange: 'Les données couvrent',
+      noDateColumn: "Aucune colonne Date de Comptabilisation détectée — téléchargez un fichier avec des données de dates valides pour utiliser ce filtre",
+      staleWarning: 'Plage de dates modifiée — relancez les tests pour mettre à jour les résultats',
+      allRows: '{{total}} lignes incluses',
+      last30: '30 dern. j.',
+      thisYear: 'Cette Année',
+      prevYear: 'Année Préc.',
+      noRowsWarning: 'Aucune ligne ne correspond à la plage de dates sélectionnée',
     },
   },
 }

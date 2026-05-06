@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import FileUpload from '../components/FileUpload'
 import ColumnValidation from '../components/ColumnValidation'
 import DataPreview from '../components/DataPreview'
+import DateRangeFilter from '../components/DateRangeFilter'
 import LoadingSpinner from '../components/LoadingSpinner'
 import FraudSummary from '../components/FraudSummary'
 import FraudResults from '../components/FraudResults'
@@ -39,6 +40,8 @@ export default function Dashboard() {
     flaggedEntries, hasRun, isRunning,
     runTests, summary,
     loadedSessionName,
+    dateFrom, dateTo, setDateFrom, setDateTo,
+    filteredRows, dataDateRange, resultsDirty,
   } = useAudit()
 
   const hasData       = rows.length > 0
@@ -117,6 +120,19 @@ export default function Dashboard() {
           </div>
           <ColumnValidation headers={headers} missingColumns={missingColumns} columnMap={columnMap} dataIssues={dataIssues} />
           <DataPreview rows={rows} headers={headers} totalRows={rows.length} />
+
+          {/* Date range filter */}
+          {isColumnValid && (
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              setDateFrom={setDateFrom}
+              setDateTo={setDateTo}
+              filteredRows={filteredRows}
+              totalRows={rows.length}
+              dataDateRange={dataDateRange}
+            />
+          )}
         </>
       )}
 
@@ -125,6 +141,16 @@ export default function Dashboard() {
         <>
           <SectionDivider label={t('dashboard.step3')} />
 
+          {/* Stale results warning */}
+          {resultsDirty && hasRun && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-xs text-amber-800 font-medium flex-1">{t('dateFilter.staleWarning')}</p>
+            </div>
+          )}
+
           {isColumnValid && hasRun && (
             <div className="card flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex-1">
@@ -132,8 +158,8 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 mt-0.5">{t('dashboard.rerunDesc')}</p>
               </div>
               <button
-                onClick={() => runTests(rows)}
-                disabled={isRunning}
+                onClick={() => runTests(filteredRows)}
+                disabled={isRunning || filteredRows.length === 0}
                 className="btn-primary shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isRunning ? (
