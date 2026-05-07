@@ -25,15 +25,17 @@ function formatDate(val) {
 }
 
 const RISK_BADGE = {
-  High:   'bg-red-100 text-red-700 border-red-200',
-  Medium: 'bg-amber-100 text-amber-700 border-amber-200',
-  Low:    'bg-emerald-100 text-emerald-700 border-emerald-200',
+  Critical: 'bg-red-900 text-red-100 border-red-700',
+  High:     'bg-red-100 text-red-700 border-red-200',
+  Medium:   'bg-amber-100 text-amber-700 border-amber-200',
+  Low:      'bg-emerald-100 text-emerald-700 border-emerald-200',
 }
 
 const RISK_ROW = {
-  High:   'bg-red-50/40',
-  Medium: 'bg-amber-50/40',
-  Low:    '',
+  Critical: 'bg-red-100/60',
+  High:     'bg-red-50/40',
+  Medium:   'bg-amber-50/40',
+  Low:      '',
 }
 
 function InsightIcon({ type }) {
@@ -195,7 +197,7 @@ export default function ReportPage() {
             <p className="text-xs text-amber-600 mt-1 font-medium">{t('reportPage.flaggedEntries')}</p>
           </div>
           <div className="text-center p-4 rounded-xl bg-red-50 border border-red-100">
-            <p className="text-3xl font-bold text-red-700 tabular-nums">{riskCounts.High || 0}</p>
+            <p className="text-3xl font-bold text-red-700 tabular-nums">{(riskCounts.Critical || 0) + (riskCounts.High || 0)}</p>
             <p className="text-xs text-red-600 mt-1 font-medium">{t('reportPage.highRisk')}</p>
           </div>
           <div className={`text-center p-4 rounded-xl border ${flagPct >= 20 ? 'bg-red-50 border-red-100' : flagPct >= 10 ? 'bg-amber-50 border-amber-100' : 'bg-emerald-50 border-emerald-100'}`}>
@@ -213,18 +215,19 @@ export default function ReportPage() {
           <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
             {flagged > 0 ? (
               <>
-                {riskCounts.High   > 0 && <div className="bg-red-500"    style={{ width: `${(riskCounts.High   / flagged) * 100}%` }} title={`High: ${riskCounts.High}`} />}
-                {riskCounts.Medium > 0 && <div className="bg-amber-400"  style={{ width: `${(riskCounts.Medium / flagged) * 100}%` }} title={`Medium: ${riskCounts.Medium}`} />}
-                {riskCounts.Low    > 0 && <div className="bg-emerald-400" style={{ width: `${(riskCounts.Low    / flagged) * 100}%` }} title={`Low: ${riskCounts.Low}`} />}
+                {riskCounts.Critical > 0 && <div className="bg-red-900"    style={{ width: `${(riskCounts.Critical / flagged) * 100}%` }} title={`Critical: ${riskCounts.Critical}`} />}
+                {riskCounts.High     > 0 && <div className="bg-red-500"    style={{ width: `${(riskCounts.High    / flagged) * 100}%` }} title={`High: ${riskCounts.High}`} />}
+                {riskCounts.Medium   > 0 && <div className="bg-amber-400"  style={{ width: `${(riskCounts.Medium  / flagged) * 100}%` }} title={`Medium: ${riskCounts.Medium}`} />}
+                {riskCounts.Low      > 0 && <div className="bg-emerald-400" style={{ width: `${(riskCounts.Low    / flagged) * 100}%` }} title={`Low: ${riskCounts.Low}`} />}
               </>
             ) : (
               <div className="bg-slate-100 flex-1 rounded-full" />
             )}
           </div>
-          <div className="flex gap-4 mt-2">
-            {['High', 'Medium', 'Low'].map(level => (
+          <div className="flex gap-4 mt-2 flex-wrap">
+            {['Critical', 'High', 'Medium', 'Low'].map(level => (
               <div key={level} className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full shrink-0 ${level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${level === 'Critical' ? 'bg-red-900' : level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                 <span className="text-xs text-slate-500">{t('risk.' + level)}: {riskCounts[level] || 0}</span>
               </div>
             ))}

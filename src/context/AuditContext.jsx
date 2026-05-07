@@ -20,18 +20,27 @@ export function AuditProvider({ children }) {
   const [loadedSessionName, setLoadedSessionName] = useState(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo]     = useState('')
-  const [holidays, setHolidays] = useState([])  // array of 'YYYY-MM-DD' strings
-  const [maxAmount, setMaxAmount] = useState('')  // empty = disabled
+  const [holidays, setHolidays] = useState([])
+  const [maxAmount, setMaxAmount] = useState('')
   const [resultsDirty, setResultsDirty] = useState(false)
+  // Configurable test thresholds (#13)
+  const [testConfig, setTestConfig] = useState({
+    backdateDays:       5,
+    narrationMinLen:    5,
+    zScoreThreshold:    3.0,
+    splittingThreshold: 10000,
+    roundNumberMin:     1000,
+  })
 
   const {
     file, rows, headers, missingColumns, columnMap, dataIssues,
-    loading, fileError, parseError,
+    loading, fileError, parseError, fileWarning,
+    sheetNames, selectedSheet, selectSheet, applyManualMapping,
     processFile, reset: resetFile,
   } = useFileParser()
 
   const {
-    flaggedEntries, hasRun, isRunning,
+    flaggedEntries, benfordAnalysis, hasRun, isRunning,
     runTests, reset: resetTests, summary, loadResults,
   } = useFraudTests()
 
@@ -79,8 +88,8 @@ export function AuditProvider({ children }) {
   // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount })
-  }, [runTests, holidays, maxAmount])
+    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount, ...testConfig })
+  }, [runTests, holidays, maxAmount, testConfig])
 
   // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
   useEffect(() => {
@@ -89,10 +98,10 @@ export function AuditProvider({ children }) {
     }
   }, [loading, filteredRows, missingColumns, hasRun, isRunning, runAudit])
 
-  // Mark results stale when date filter OR holidays change after tests have run
+  // Mark results stale when any filter or config changes after tests have run
   useEffect(() => {
     if (hasRunRef.current) setResultsDirty(true)
-  }, [dateFrom, dateTo, holidays, maxAmount])
+  }, [dateFrom, dateTo, holidays, maxAmount, testConfig])
 
   const handleReset = useCallback(() => {
     resetFile()
@@ -119,9 +128,11 @@ export function AuditProvider({ children }) {
   return (
     <AuditContext.Provider value={{
       file, rows, headers, missingColumns, columnMap, dataIssues,
-      loading, fileError, parseError, processFile,
-      flaggedEntries, hasRun, isRunning, runTests: runAudit, summary,
+      loading, fileError, parseError, fileWarning, processFile,
+      sheetNames, selectedSheet, selectSheet, applyManualMapping,
+      flaggedEntries, benfordAnalysis, hasRun, isRunning, runTests: runAudit, summary,
       handleReset, loadSession, loadedSessionName,
+      testConfig, setTestConfig,
       dateFrom, dateTo, setDateFrom, setDateTo,
       filteredRows, dataDateRange, resultsDirty,
       holidays, addHoliday, removeHoliday, clearHolidays,

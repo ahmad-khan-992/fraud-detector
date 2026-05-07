@@ -2,17 +2,19 @@ import { useState, useCallback, useMemo } from 'react'
 import { runAllTests } from '../utils/fraudTests'
 
 export function useFraudTests() {
-  const [flaggedEntries, setFlaggedEntries] = useState([])
-  const [totalRows, setTotalRows]           = useState(0)
-  const [hasRun, setHasRun]                 = useState(false)
-  const [isRunning, setIsRunning]           = useState(false)
+  const [flaggedEntries, setFlaggedEntries]   = useState([])
+  const [benfordAnalysis, setBenfordAnalysis] = useState(null)
+  const [totalRows, setTotalRows]             = useState(0)
+  const [hasRun, setHasRun]                   = useState(false)
+  const [isRunning, setIsRunning]             = useState(false)
 
   const runTests = useCallback((rows, options = {}) => {
     setIsRunning(true)
     setHasRun(false)
     setTimeout(() => {
-      const results = runAllTests(rows, options)
-      setFlaggedEntries(results)
+      const { entries, benfordAnalysis: bfa } = runAllTests(rows, options)
+      setFlaggedEntries(entries)
+      setBenfordAnalysis(bfa)
       setTotalRows(rows.length)
       setHasRun(true)
       setIsRunning(false)
@@ -21,6 +23,7 @@ export function useFraudTests() {
 
   const loadResults = useCallback((savedEntries, savedTotal) => {
     setFlaggedEntries(savedEntries)
+    setBenfordAnalysis(null)
     setTotalRows(savedTotal)
     setHasRun(true)
     setIsRunning(false)
@@ -28,6 +31,7 @@ export function useFraudTests() {
 
   const reset = useCallback(() => {
     setFlaggedEntries([])
+    setBenfordAnalysis(null)
     setTotalRows(0)
     setHasRun(false)
   }, [])
@@ -37,7 +41,7 @@ export function useFraudTests() {
     const riskPercent = totalRows > 0 ? ((flagged / totalRows) * 100).toFixed(1) : '0.0'
 
     const reasonCounts = {}
-    const riskCounts   = { High: 0, Medium: 0, Low: 0 }
+    const riskCounts   = { Critical: 0, High: 0, Medium: 0, Low: 0 }
 
     for (const entry of flaggedEntries) {
       for (const reason of entry.reasons) {
@@ -49,5 +53,5 @@ export function useFraudTests() {
     return { total: totalRows, flagged, riskPercent, reasonCounts, riskCounts }
   }, [flaggedEntries, totalRows])
 
-  return { flaggedEntries, hasRun, isRunning, runTests, reset, summary, loadResults }
+  return { flaggedEntries, benfordAnalysis, hasRun, isRunning, runTests, reset, summary, loadResults }
 }

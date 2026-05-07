@@ -1,4 +1,4 @@
-# AuditIQ — Journal Entry Fraud Detector
+# AnomalyScanner — Journal Entry Fraud Detector
 
 A browser-based audit tool that lets you upload a General Ledger export, validate data quality, and run 11 automated fraud-detection checks against your journal entries — all without any backend server.
 

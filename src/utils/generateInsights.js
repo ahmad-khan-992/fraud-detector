@@ -21,13 +21,14 @@ export function generateInsights(summary, t = k => k) {
     })
   }
 
-  if (riskCounts.High > 0) {
+  const criticalAndHigh = (riskCounts.Critical || 0) + (riskCounts.High || 0)
+  if (criticalAndHigh > 0) {
     insights.push({
       type: 'critical',
       title: t('insights.immediateTitle'),
       text: t('insights.immediateText', {
-        count: riskCounts.High,
-        pct: ((riskCounts.High / total) * 100).toFixed(1),
+        count: criticalAndHigh,
+        pct: ((criticalAndHigh / total) * 100).toFixed(1),
       }),
     })
   }
@@ -90,6 +91,62 @@ export function generateInsights(summary, t = k => k) {
       type: 'critical',
       title: t('insights.amountThresholdTitle'),
       text: t('insights.amountThresholdText', { count: reasonCounts['Amount Above Threshold'] }),
+    })
+  }
+
+  if (reasonCounts['Splitting / Structuring'] > 0) {
+    insights.push({
+      type: 'critical',
+      title: t('insights.splittingTitle'),
+      text: t('insights.splittingText', { count: reasonCounts['Splitting / Structuring'] }),
+    })
+  }
+
+  if (reasonCounts['Same-Day Reversal'] > 0) {
+    insights.push({
+      type: 'critical',
+      title: t('insights.reversalTitle'),
+      text: t('insights.reversalText', { count: reasonCounts['Same-Day Reversal'] }),
+    })
+  }
+
+  if (reasonCounts['Z-Score Anomaly'] > 0) {
+    insights.push({
+      type: 'warning',
+      title: t('insights.zscoreTitle'),
+      text: t('insights.zscoreText', { count: reasonCounts['Z-Score Anomaly'] }),
+    })
+  }
+
+  if (reasonCounts['User Concentration Risk'] > 0) {
+    insights.push({
+      type: 'warning',
+      title: t('insights.userConcTitle'),
+      text: t('insights.userConcText', { count: reasonCounts['User Concentration Risk'] }),
+    })
+  }
+
+  if (reasonCounts['Dormant Account Reactivation'] > 0) {
+    insights.push({
+      type: 'warning',
+      title: t('insights.dormantTitle'),
+      text: t('insights.dormantText', { count: reasonCounts['Dormant Account Reactivation'] }),
+    })
+  }
+
+  if (reasonCounts['Off-Hours Posting'] > 0) {
+    insights.push({
+      type: 'warning',
+      title: t('insights.offHoursPostingTitle'),
+      text: t('insights.offHoursPostingText', { count: reasonCounts['Off-Hours Posting'] }),
+    })
+  }
+
+  if (reasonCounts['Duplicate Entry'] > 0) {
+    insights.push({
+      type: 'critical',
+      title: t('insights.duplicateTitle'),
+      text: t('insights.duplicateText', { count: reasonCounts['Duplicate Entry'] }),
     })
   }
 

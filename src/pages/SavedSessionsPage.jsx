@@ -14,9 +14,10 @@ function RiskBar({ riskCounts, flagged }) {
   if (!flagged) return <div className="h-1.5 bg-slate-100 rounded-full" />
   return (
     <div className="flex h-1.5 rounded-full overflow-hidden gap-px">
-      {riskCounts.High   > 0 && <div className="bg-red-500"    style={{ width: `${(riskCounts.High   / flagged) * 100}%` }} />}
-      {riskCounts.Medium > 0 && <div className="bg-amber-400"  style={{ width: `${(riskCounts.Medium / flagged) * 100}%` }} />}
-      {riskCounts.Low    > 0 && <div className="bg-emerald-400" style={{ width: `${(riskCounts.Low    / flagged) * 100}%` }} />}
+      {riskCounts.Critical > 0 && <div className="bg-red-900"    style={{ width: `${(riskCounts.Critical / flagged) * 100}%` }} />}
+      {riskCounts.High     > 0 && <div className="bg-red-500"    style={{ width: `${(riskCounts.High    / flagged) * 100}%` }} />}
+      {riskCounts.Medium   > 0 && <div className="bg-amber-400"  style={{ width: `${(riskCounts.Medium  / flagged) * 100}%` }} />}
+      {riskCounts.Low      > 0 && <div className="bg-emerald-400" style={{ width: `${(riskCounts.Low    / flagged) * 100}%` }} />}
     </div>
   )
 }
@@ -88,6 +89,12 @@ export default function SavedSessionsPage() {
                   <span className={`text-xs font-semibold ${rateColor}`}>
                     {riskPercent}% {t('savedSessions.flagRate')}
                   </span>
+                  {riskCounts.Critical > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-900">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-900" />
+                      {riskCounts.Critical} {t('savedSessions.critical')}
+                    </span>
+                  )}
                   {riskCounts.High > 0 && (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700">
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -99,10 +106,14 @@ export default function SavedSessionsPage() {
                 {/* Risk bar */}
                 <div className="mt-3 max-w-xs">
                   <RiskBar riskCounts={riskCounts} flagged={flagged} />
-                  <div className="flex gap-3 mt-1.5">
-                    {['High', 'Medium', 'Low'].map(level => (
+                  <div className="flex gap-3 mt-1.5 flex-wrap">
+                    {['Critical', 'High', 'Medium', 'Low'].map(level => (
                       <div key={level} className="flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${level === 'High' ? 'bg-red-500' : level === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          level === 'Critical' ? 'bg-red-900' :
+                          level === 'High'     ? 'bg-red-500' :
+                          level === 'Medium'   ? 'bg-amber-400' : 'bg-emerald-400'
+                        }`} />
                         <span className="text-xs text-slate-400">{t('savedSessions.' + level.toLowerCase())}: {riskCounts[level] || 0}</span>
                       </div>
                     ))}

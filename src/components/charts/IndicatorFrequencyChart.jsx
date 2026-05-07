@@ -1,20 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts'
-
-const SHORT_LABELS = {
-  'Zero / Null Amount':                'Zero/Null Amount',
-  'Short / Missing Narration':         'Short Narration',
-  'Unusually High Amount (top 5%)':    'High Amount (>95th%)',
-  'Unusually Low Amount (bottom 5%)':  'Low Amount (<5th%)',
-  'Weekend Entry (Saturday)':          'Weekend (Saturday)',
-  'Weekend Entry (Sunday)':            'Weekend (Sunday)',
-  'Seldom Used Account':               'Seldom-Used Account',
-  'Rare User':                         'Rare User',
-  'Null / Missing Field':              'Missing Field',
-  'Backdated Entry':                   'Backdated Entry',
-  'Postdated Entry':                   'Postdated Entry',
-  'Entry After Year-End':              'After Year-End',
-  'Repeating Digit Amount':            'Repeating Digits',
-}
+import { useLanguage } from '../../context/LanguageContext'
+import { REASON_KEYS } from '../../utils/fraudTests'
 
 const REASON_COLORS = {
   'Zero / Null Amount':                '#ef4444',
@@ -30,34 +16,52 @@ const REASON_COLORS = {
   'Postdated Entry':                   '#8b5cf6',
   'Entry After Year-End':              '#991b1b',
   'Repeating Digit Amount':            '#14b8a6',
-}
-
-const CustomTooltip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null
-  const { fullName, count } = payload[0].payload
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-md text-xs max-w-[220px]">
-      <p className="font-semibold text-slate-800 leading-snug">{fullName}</p>
-      <p className="text-slate-500 mt-0.5">{count} flag{count !== 1 ? 's' : ''}</p>
-    </div>
-  )
+  'Holiday Entry':                     '#e11d48',
+  'Amount Above Threshold':            '#7c3aed',
+  'Round Number':                      '#4f46e5',
+  'Z-Score Anomaly':                   '#0891b2',
+  'Splitting / Structuring':           '#dc2626',
+  'Same-Day Reversal':                 '#ea580c',
+  'Period-End Clustering':             '#ca8a04',
+  'Dormant Account Reactivation':      '#475569',
+  'User Concentration Risk':           '#a21caf',
+  'Off-Hours Posting':                 '#78716c',
+  'Duplicate Entry':                   '#374151',
 }
 
 export default function IndicatorFrequencyChart({ reasonCounts }) {
+  const { t } = useLanguage()
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null
+    const { translatedName, count } = payload[0].payload
+    return (
+      <div className="bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-md text-xs max-w-[220px]">
+        <p className="font-semibold text-slate-800 leading-snug">{translatedName}</p>
+        <p className="text-slate-500 mt-0.5">{count} {count === 1 ? t('analyticsPage.flagSingular') : t('analyticsPage.flagPlural')}</p>
+      </div>
+    )
+  }
+
   const data = Object.entries(reasonCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([reason, count]) => ({
-      label: SHORT_LABELS[reason] || reason,
-      fullName: reason,
-      count,
-      color: REASON_COLORS[reason] || '#6366f1',
-    }))
+    .slice(0, 12)
+    .map(([reason, count]) => {
+      const rk = REASON_KEYS[reason]
+      const translatedName = rk ? t('reasons.' + rk) : reason
+      const shortLabel = translatedName.length > 22 ? translatedName.slice(0, 21) + '…' : translatedName
+      return {
+        label: shortLabel,
+        translatedName,
+        count,
+        color: REASON_COLORS[reason] || '#6366f1',
+      }
+    })
 
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center h-56 text-sm text-slate-400">
-        No fraud indicators found
+        {t('analyticsPage.noIndicators')}
       </div>
     )
   }
@@ -77,7 +81,7 @@ export default function IndicatorFrequencyChart({ reasonCounts }) {
         <YAxis
           type="category"
           dataKey="label"
-          width={148}
+          width={160}
           tick={{ fontSize: 11, fill: '#64748b' }}
           axisLine={false}
           tickLine={false}

@@ -6,6 +6,7 @@ import DataPreview from '../components/DataPreview'
 import DateRangeFilter from '../components/DateRangeFilter'
 import HolidayFilter from '../components/HolidayFilter'
 import AmountFilter from '../components/AmountFilter'
+import TestConfigPanel from '../components/TestConfigPanel'
 import LoadingSpinner from '../components/LoadingSpinner'
 import FraudSummary from '../components/FraudSummary'
 import FraudResults from '../components/FraudResults'
@@ -37,8 +38,9 @@ export default function Dashboard() {
   const { t } = useLanguage()
   const {
     file, rows, headers, missingColumns, columnMap, dataIssues,
-    loading, fileError, parseError,
+    loading, fileError, parseError, fileWarning,
     processFile, handleReset,
+    sheetNames, selectedSheet, selectSheet, applyManualMapping,
     flaggedEntries, hasRun, isRunning,
     runTests, summary,
     loadedSessionName,
@@ -46,6 +48,7 @@ export default function Dashboard() {
     filteredRows, dataDateRange, resultsDirty,
     holidays, addHoliday, removeHoliday, clearHolidays,
     maxAmount, setMaxAmount,
+    testConfig, setTestConfig,
   } = useAudit()
 
   const hasData       = rows.length > 0
@@ -80,7 +83,11 @@ export default function Dashboard() {
         onFile={processFile}
         file={file}
         error={fileError}
+        fileWarning={fileWarning}
         onReset={handleReset}
+        sheetNames={sheetNames}
+        selectedSheet={selectedSheet}
+        onSelectSheet={selectSheet}
       />
 
       {/* Parse error */}
@@ -122,7 +129,14 @@ export default function Dashboard() {
               accent={isColumnValid ? 'text-emerald-600' : 'text-amber-600'}
             />
           </div>
-          <ColumnValidation headers={headers} missingColumns={missingColumns} columnMap={columnMap} dataIssues={dataIssues} />
+          <ColumnValidation
+            headers={headers}
+            missingColumns={missingColumns}
+            columnMap={columnMap}
+            dataIssues={dataIssues}
+            applyManualMapping={applyManualMapping}
+            sampleRows={rows.slice(0, 5)}
+          />
           <DataPreview rows={rows} headers={headers} totalRows={rows.length} />
 
           {/* Date range filter */}
@@ -157,6 +171,11 @@ export default function Dashboard() {
               setMaxAmount={setMaxAmount}
               filteredRows={filteredRows}
             />
+          )}
+
+          {/* Test configuration */}
+          {isColumnValid && (
+            <TestConfigPanel testConfig={testConfig} setTestConfig={setTestConfig} />
           )}
         </>
       )}

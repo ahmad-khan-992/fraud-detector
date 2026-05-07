@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { buildExplanation } from './fraudTests'
 
 function getField(row, fieldName) {
   const target = fieldName.trim().toLowerCase()
@@ -29,34 +30,26 @@ export function exportFraudReport(flaggedEntries, filename = 'Fraud_Report.xlsx'
     'Risk Score':      entry.riskScore,
     'Risk Level':      entry.riskLevel,
     'Triggered Tests': entry.reasons.join(', '),
-    'Explanation':     entry.explanation,
+    'Explanation':     buildExplanation(entry.reasons),
   }))
 
   const ws1 = XLSX.utils.json_to_sheet(reportData)
   ws1['!cols'] = [
-    { wch: 5 },
-    { wch: 6 },
-    { wch: 18 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 30 },
-    { wch: 18 },
-    { wch: 11 },
-    { wch: 12 },
-    { wch: 50 },
-    { wch: 70 },
+    { wch: 5 }, { wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 14 },
+    { wch: 14 }, { wch: 40 }, { wch: 18 }, { wch: 11 }, { wch: 12 },
+    { wch: 60 }, { wch: 80 },
   ]
   XLSX.utils.book_append_sheet(wb, ws1, 'Flagged Entries')
 
   // Sheet 2: Risk Summary
-  const riskCounts = { High: 0, Medium: 0, Low: 0 }
+  const riskCounts = { Critical: 0, High: 0, Medium: 0, Low: 0 }
   for (const e of flaggedEntries) riskCounts[e.riskLevel] = (riskCounts[e.riskLevel] || 0) + 1
 
   const summaryData = [
-    { 'Risk Level': 'High',   Count: riskCounts.High   },
-    { 'Risk Level': 'Medium', Count: riskCounts.Medium },
-    { 'Risk Level': 'Low',    Count: riskCounts.Low    },
+    { 'Risk Level': 'Critical', Count: riskCounts.Critical },
+    { 'Risk Level': 'High',     Count: riskCounts.High     },
+    { 'Risk Level': 'Medium',   Count: riskCounts.Medium   },
+    { 'Risk Level': 'Low',      Count: riskCounts.Low      },
     { 'Risk Level': 'Total Flagged', Count: flaggedEntries.length },
   ]
   const ws2 = XLSX.utils.json_to_sheet(summaryData)

@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react'
 import { useLanguage } from '../context/LanguageContext'
 
-export default function FileUpload({ onFile, file, error, onReset }) {
+export default function FileUpload({ onFile, file, error, fileWarning, onReset, sheetNames, selectedSheet, onSelectSheet }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
   const { t } = useLanguage()
@@ -11,9 +11,9 @@ export default function FileUpload({ onFile, file, error, onReset }) {
     [onFile]
   )
 
-  const onDragOver  = (e) => { e.preventDefault(); setDragging(true) }
-  const onDragLeave = () => setDragging(false)
-  const onDrop      = (e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }
+  const onDragOver    = (e) => { e.preventDefault(); setDragging(true) }
+  const onDragLeave   = () => setDragging(false)
+  const onDrop        = (e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }
   const onInputChange = (e) => handleFiles(e.target.files)
 
   const formatSize = (bytes) => {
@@ -21,6 +21,10 @@ export default function FileUpload({ onFile, file, error, onReset }) {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
+
+  // Parse warning type
+  const warnType  = fileWarning?.split(':')[0]
+  const warnValue = fileWarning?.split(':')[1]
 
   return (
     <div className="card">
@@ -58,7 +62,7 @@ export default function FileUpload({ onFile, file, error, onReset }) {
             </p>
             <p className="text-xs text-slate-400 mt-1">{t('fileUpload.clickBrowse')}</p>
           </div>
-          <input ref={inputRef} type="file" accept=".xlsx,.xls" onChange={onInputChange} className="sr-only" />
+          <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onInputChange} className="sr-only" />
         </div>
       ) : (
         <div className="flex items-center gap-4 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl">
@@ -67,11 +71,11 @@ export default function FileUpload({ onFile, file, error, onReset }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
             <p className="text-xs text-slate-500 mt-0.5">{formatSize(file.size)}</p>
           </div>
-          <div className="ml-auto shrink-0">
+          <div className="shrink-0">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -79,6 +83,38 @@ export default function FileUpload({ onFile, file, error, onReset }) {
               {t('fileUpload.uploaded')}
             </span>
           </div>
+        </div>
+      )}
+
+      {/* #15: multi-sheet selector */}
+      {sheetNames && sheetNames.length > 1 && (
+        <div className="mt-3 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl">
+          <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <p className="text-xs text-indigo-700 font-medium flex-1">{t('fileUpload.multiSheet', { count: sheetNames.length })}</p>
+          <select
+            value={selectedSheet ?? ''}
+            onChange={e => onSelectSheet?.(e.target.value)}
+            className="text-xs border border-indigo-200 rounded-lg px-2.5 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            {sheetNames.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      )}
+
+      {/* #17: file size / row count warning */}
+      {fileWarning && (
+        <div className="mt-3 flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl">
+          <svg className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-xs text-amber-800">
+            {warnType === 'large_file'
+              ? t('fileUpload.largeFileWarning', { size: warnValue })
+              : t('fileUpload.largeRowsWarning', { rows: Number(warnValue).toLocaleString() })
+            }
+          </p>
         </div>
       )}
 
