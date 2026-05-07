@@ -88,6 +88,8 @@ export default function Sidebar({ savedSessionCount = 0 }) {
       <div className="px-5 py-4 border-t border-white/10 shrink-0">
         <p className="text-xs text-slate-500 font-medium">AnomalyScanner · Phase 4</p>
         <p className="text-xs text-slate-600 mt-0.5">Journal Entry Analytics</p>
+        <p className="text-xs text-slate-600 mt-3">Created by</p>
+        <p className="text-xs text-slate-400 font-medium">Ahmad Hassan Khan</p>
       </div>
     </aside>
   )
