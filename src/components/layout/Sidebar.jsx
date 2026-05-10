@@ -57,12 +57,38 @@ export default function Sidebar({ savedSessionCount = 0 }) {
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV.map(({ to, key, icon }) => (
+      <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col">
+        <div className="space-y-1">
+          {NAV.map(({ to, key, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
+                  isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && <span className="absolute left-0 inset-y-0 w-0.5 bg-brand-500 rounded-full" />}
+                  {icon}
+                  <span>{t(key)}</span>
+                  {to === '/sessions' && savedSessionCount > 0 && (
+                    <span className="ml-auto flex items-center justify-center w-5 h-5 text-xs font-bold bg-brand-600 text-white rounded-full">
+                      {savedSessionCount}
+                    </span>
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-white/10">
           <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
+            to="/about"
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
                 isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
@@ -72,17 +98,14 @@ export default function Sidebar({ savedSessionCount = 0 }) {
             {({ isActive }) => (
               <>
                 {isActive && <span className="absolute left-0 inset-y-0 w-0.5 bg-brand-500 rounded-full" />}
-                {icon}
-                <span>{t(key)}</span>
-                {to === '/sessions' && savedSessionCount > 0 && (
-                  <span className="ml-auto flex items-center justify-center w-5 h-5 text-xs font-bold bg-brand-600 text-white rounded-full">
-                    {savedSessionCount}
-                  </span>
-                )}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                </svg>
+                <span>{t('sidebar.about')}</span>
               </>
             )}
           </NavLink>
-        ))}
+        </div>
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 shrink-0">

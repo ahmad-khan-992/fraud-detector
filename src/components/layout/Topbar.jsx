@@ -7,6 +7,7 @@ const PAGE_KEYS = {
   '/analytics': { title: 'sidebar.analytics',     sub: 'topbar.analyticsSub' },
   '/report':    { title: 'sidebar.fraudReport',   sub: 'topbar.reportSub'   },
   '/sessions':  { title: 'sidebar.savedSessions', sub: 'topbar.sessionsSub' },
+  '/about':     { title: 'sidebar.about',          sub: 'topbar.aboutSub'    },
 }
 
 export default function Topbar({ onSave, canSave }) {

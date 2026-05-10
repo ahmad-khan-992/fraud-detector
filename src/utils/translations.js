@@ -5,6 +5,7 @@ export const translations = {
       analytics: 'Analytics',
       fraudReport: 'Fraud Report',
       savedSessions: 'Saved Sessions',
+      about: 'About & How It Works',
       platformSub: 'Fraud Analytics Platform',
     },
     topbar: {
@@ -12,6 +13,7 @@ export const translations = {
       analyticsSub: 'Visual fraud indicators and smart insights',
       reportSub: 'Executive summary and detailed findings',
       sessionsSub: 'Reload and manage previous audit sessions',
+      aboutSub: 'Platform overview, features, and frequently asked questions',
       rows: 'rows',
       saveSession: 'Save Session',
     },
@@ -470,6 +472,7 @@ export const translations = {
       analytics: 'Analytique',
       fraudReport: 'Rapport de Fraude',
       savedSessions: 'Sessions Sauvegardées',
+      about: 'À Propos & Comment ça Marche',
       platformSub: "Plateforme d'Analytique Fraud",
     },
     topbar: {
@@ -477,6 +480,7 @@ export const translations = {
       analyticsSub: 'Indicateurs de fraude visuels et aperçus intelligents',
       reportSub: 'Résumé exécutif et conclusions détaillées',
       sessionsSub: 'Rechargez et gérez les sessions d\'audit précédentes',
+      aboutSub: "Vue d'ensemble de la plateforme, fonctionnalités et questions fréquentes",
       rows: 'lignes',
       saveSession: 'Sauvegarder la Session',
     },
