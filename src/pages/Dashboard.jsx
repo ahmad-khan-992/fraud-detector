@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FileUpload from '../components/FileUpload'
 import ColumnValidation from '../components/ColumnValidation'
@@ -51,6 +51,20 @@ export default function Dashboard() {
     testConfig, setTestConfig,
   } = useAudit()
 
+  const [demoError, setDemoError] = useState(null)
+
+  const loadDemoData = useCallback(async () => {
+    setDemoError(null)
+    try {
+      const res = await fetch('/sample-data.csv')
+      if (!res.ok) throw new Error('Could not load sample file')
+      const blob = await res.blob()
+      processFile(new File([blob], 'AnomalyScanner-Demo-Data.csv', { type: 'text/csv' }))
+    } catch (err) {
+      setDemoError(err.message)
+    }
+  }, [processFile])
+
   const hasData       = rows.length > 0
   const isColumnValid = hasData && missingColumns.length === 0
 
@@ -82,12 +96,13 @@ export default function Dashboard() {
       <FileUpload
         onFile={processFile}
         file={file}
-        error={fileError}
+        error={fileError || demoError}
         fileWarning={fileWarning}
         onReset={handleReset}
         sheetNames={sheetNames}
         selectedSheet={selectedSheet}
         onSelectSheet={selectSheet}
+        onLoadDemo={!file ? loadDemoData : undefined}
       />
 
       {/* Parse error */}

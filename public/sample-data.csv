@@ -1,0 +1,66 @@
+Account Number,Amount,Posting Date,Effective Date,JE Narration,User
+1001,12543.20,2024-01-01,2024-01-01,Opening cash balance journal confirmation,jsmith
+3001,45890.00,2024-01-02,2024-01-02,Revenue recognition INV-5001,rjones
+4002,9210.50,2024-01-03,2024-01-03,January payroll batch run,mwilson
+2001,3145.80,2024-01-04,2024-01-04,Supplier invoice SI-2024-001 payment,jsmith
+4003,2340.00,2024-01-05,2024-01-05,Digital advertising expense Q1,rjones
+1002,5678.40,2024-01-08,2024-01-08,Customer receipt AR-089 applied,mwilson
+4001,1876.50,2024-01-09,2024-01-09,Office maintenance and supplies,jsmith
+3001,38450.00,2024-01-10,2024-01-10,Revenue recognition INV-5002,rjones
+1001,22000.00,2024-01-11,2024-01-11,Wire transfer from customer XYZ,mwilson
+4001,2340.60,2024-01-12,2024-01-12,Equipment rental January invoice,jsmith
+2002,1456.75,2024-01-15,2024-01-15,Accrued utilities payable January,rjones
+4003,3670.00,2024-01-16,2024-01-16,Trade show expenses reimbursement,mwilson
+3001,29800.00,2024-01-17,2024-01-17,Revenue recognition INV-5010,jsmith
+4001,1200.00,2024-01-06,2024-01-06,Urgent maintenance repair weekend,jsmith
+2001,850.00,2024-01-07,2024-01-07,Emergency supplier deposit weekend,mwilson
+4001,3500.00,2024-02-15,2023-12-01,Prior year accrual write-off adjustment,jsmith
+2001,0,2024-01-18,2024-01-18,Clearing test entry voucher,rjones
+4001,567.00,2024-01-19,2024-01-19,OK,mwilson
+3001,12300.00,2024-01-22,2024-01-22,CR,jsmith
+2001,6780.00,2024-01-23,2024-01-23,Supplier payment batch SI-0092,rjones
+4001,890.75,2024-01-24,2024-01-24,Stationery and printing supplies,mwilson
+1001,15000.00,2024-01-25,2024-01-25,Quarterly deposit transfer funds,jsmith
+4002,9200.00,2024-01-26,2024-01-26,Bi-weekly payroll processing,rjones
+1002,4320.50,2024-01-29,2024-01-29,Receivables adjustment customer 44,mwilson
+3001,19800.00,2024-01-30,2024-01-30,Invoice revenue recognition INV-5030,jsmith
+4001,10000.00,2024-02-01,2024-02-01,Monthly service agreement fee,rjones
+2001,50000.00,2024-02-05,2024-02-05,Large vendor contract settlement payment,jsmith
+4002,100000.00,2024-02-06,2024-02-06,Payroll system override correction entry,admin
+4001,4499.00,2024-02-10,2024-02-10,Vendor payment tranche 1 of 3,jsmith
+4001,4499.00,2024-02-10,2024-02-10,Vendor payment tranche 2 of 3,jsmith
+4001,4499.00,2024-02-10,2024-02-10,Vendor payment tranche 3 of 3,jsmith
+3001,5000.00,2024-02-12,2024-02-12,Sales commission INV-5090 applied,mwilson
+3001,5000.00,2024-02-12,2024-02-12,Sales commission INV-5090 applied,mwilson
+2001,5250.00,2024-02-20,2024-02-20,Month-end accrual journal posting,jsmith
+2001,-5250.00,2024-02-22,2024-02-22,Month-end accrual reversal entry,jsmith
+1001,8900.00,2024-02-14,2024-02-14,Customer deposit received CRN-902,rjones
+4003,3250.00,2024-02-19,2024-02-19,Social media advertising campaign spend,mwilson
+4002,9750.00,2024-02-21,2024-02-21,February payroll processing run,mwilson
+2001,4320.50,2024-02-23,2024-02-23,Supplier invoice SI-2024-042 payment,rjones
+1002,7650.00,2024-02-26,2024-02-26,Customer accounts receivable update AR-112,jsmith
+3001,32000.00,2024-02-28,2024-02-28,Revenue recognition INV-5101,mwilson
+4001,1560.00,2024-02-29,2024-02-29,Equipment inspection fee Q1,rjones
+2001,1890.00,"2024-02-27 02:15",2024-02-27,Overnight journal system correction,jsmith
+1001,19800.00,2024-03-01,2024-03-01,Month-opening cash receipt deposit,jsmith
+4001,3450.00,2024-03-05,2024-03-05,Quarterly maintenance contract Q1,mwilson
+3001,41000.00,2024-03-06,2024-03-06,Revenue recognition INV-5201,rjones
+4002,9850.00,2024-03-08,2024-03-08,March payroll expense processing,jsmith
+2002,1230.00,2024-03-11,2024-03-11,Accrued utility liability March,mwilson
+1001,6780.00,2024-03-14,2024-03-14,Bank deposit customer transfer receipt,rjones
+9001,450.00,2024-03-15,2024-03-15,Suspense account clearing entry,mwilson
+4001,2340.00,2024-03-18,2024-03-18,Facilities management contract renewal,jsmith
+5001,2300.00,2024-03-20,2024-03-20,Miscellaneous expense reimbursement,mwilson
+5001,890.00,2024-03-25,2024-03-25,Other administrative expense posting,rjones
+2002,1500.00,2024-03-29,2024-03-29,Accrued expense recognition Q1 end,jsmith
+4001,2300.00,2024-03-29,2024-03-29,Period-end expense adjustment posting,mwilson
+3001,8900.00,2024-03-29,2024-03-29,Revenue recognition Q1 late adjustment,rjones
+4002,4200.00,2024-03-30,2024-03-30,Payroll accrual March close,jsmith
+2001,1800.00,2024-03-30,2024-03-30,Quarter-end supplier liability accrual,mwilson
+4001,6700.00,2024-03-31,2024-03-31,Year-end provision expense Q1 close,jsmith
+3001,15000.00,2024-03-31,2024-03-31,Q1 revenue recognition true-up entry,rjones
+4003,3400.00,2024-03-31,2024-03-31,Marketing expense Q1 accrual close,mwilson
+2002,9500.00,2024-03-31,2024-03-31,Final Q1 liability adjustment entry,jsmith
+1001,5000.00,2024-03-31,2024-03-31,Quarterly cash reconciliation transfer,mwilson
+4001,2890.00,2024-04-02,2024-04-02,April operating expenses general,rjones
+3001,28000.00,2024-04-04,2024-04-04,Revenue recognition INV-5301,mwilson

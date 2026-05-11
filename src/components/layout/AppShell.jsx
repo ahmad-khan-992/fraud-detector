@@ -11,6 +11,7 @@ export default function AppShell() {
   const { savedSessions, saveSession, deleteSession } = useReportStorage()
   const { t } = useLanguage()
   const [toast, setToast] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const canSave = hasRun && (!!file || !!loadedSessionName)
 
@@ -24,13 +25,21 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Sidebar savedSessionCount={savedSessions.length} />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="ml-60">
-        <Topbar onSave={handleSave} canSave={canSave} />
+      <Sidebar savedSessionCount={savedSessions.length} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="md:ml-60">
+        <Topbar onSave={handleSave} canSave={canSave} onMenuClick={() => setSidebarOpen(o => !o)} />
 
         <main className="pt-16 min-h-screen">
-          <div className="p-6 page-enter">
+          <div className="p-4 sm:p-6 page-enter">
             <Outlet context={{ savedSessions, deleteSession }} />
           </div>
         </main>

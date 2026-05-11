@@ -40,21 +40,28 @@ const NAV = [
   },
 ]
 
-export default function Sidebar({ savedSessionCount = 0 }) {
+export default function Sidebar({ savedSessionCount = 0, isOpen = false, onClose }) {
   const { t } = useLanguage()
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-60 bg-slate-900 flex flex-col z-20 no-print">
+    <aside className={`fixed inset-y-0 left-0 w-60 bg-slate-900 flex flex-col z-40 no-print transition-transform duration-200 ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10 shrink-0">
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-600 shrink-0">
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white leading-tight">AnomalyScanner</p>
           <p className="text-xs text-slate-400">{t('sidebar.platformSub')}</p>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="md:hidden p-1 rounded text-slate-400 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col">
@@ -64,6 +71,7 @@ export default function Sidebar({ savedSessionCount = 0 }) {
               key={to}
               to={to}
               end={to === '/'}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative ${
                   isActive ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
