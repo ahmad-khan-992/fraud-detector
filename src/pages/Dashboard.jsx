@@ -7,6 +7,7 @@ import DateRangeFilter from '../components/DateRangeFilter'
 import HolidayFilter from '../components/HolidayFilter'
 import AmountFilter from '../components/AmountFilter'
 import TestConfigPanel from '../components/TestConfigPanel'
+import OffHoursConfig from '../components/OffHoursConfig'
 import LoadingSpinner from '../components/LoadingSpinner'
 import FraudSummary from '../components/FraudSummary'
 import FraudResults from '../components/FraudResults'
@@ -49,6 +50,7 @@ export default function Dashboard() {
     holidays, addHoliday, removeHoliday, clearHolidays,
     maxAmount, setMaxAmount,
     testConfig, setTestConfig,
+    offHoursConfig, setOffHoursConfig,
   } = useAudit()
 
   const [demoError, setDemoError] = useState(null)
@@ -184,6 +186,15 @@ export default function Dashboard() {
             <AmountFilter
               maxAmount={maxAmount}
               setMaxAmount={setMaxAmount}
+              filteredRows={filteredRows}
+            />
+          )}
+
+          {/* Office Hours configuration */}
+          {isColumnValid && (
+            <OffHoursConfig
+              offHoursConfig={offHoursConfig}
+              setOffHoursConfig={setOffHoursConfig}
               filteredRows={filteredRows}
             />
           )}

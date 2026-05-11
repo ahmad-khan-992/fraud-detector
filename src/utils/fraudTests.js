@@ -609,9 +609,19 @@ export function testUserConcentration(rows) {
 }
 
 // ─── Test 21 (B01): Off-Hours Posting ─────────────────────────────────────────
-export function testOffHours(rows) {
-  const HOUR_START = 7
-  const HOUR_END   = 20
+export function testOffHours(rows, offHoursConfig = {}) {
+  const {
+    startHour = 9,
+    startMin  = 0,
+    endHour   = 17,
+    endMin    = 0,
+    workDays  = [1, 2, 3, 4, 5],
+    timezone  = '',
+  } = offHoursConfig
+
+  const startMins  = startHour * 60 + startMin
+  const endMins    = endHour   * 60 + endMin
+  const workDaySet = new Set(workDays)
   const flags      = []
 
   for (let i = 0; i < rows.length; i++) {
@@ -622,7 +632,7 @@ export function testOffHours(rows) {
     // Only run when the raw value contains a time component
     let hasTime = false
     if (typeof raw === 'number') {
-      hasTime = (raw % 1) > 0.0007 // fractional day > ~1 minute
+      hasTime = (raw % 1) > 0.0007
     } else if (typeof raw === 'string') {
       hasTime = /\d{1,2}:\d{2}/.test(raw)
     } else if (raw instanceof Date) {
@@ -630,8 +640,34 @@ export function testOffHours(rows) {
     }
     if (!hasTime) continue
 
-    const hour = date.getHours()
-    if (hour < HOUR_START || hour >= HOUR_END) {
+    let hour = date.getHours(), minute = date.getMinutes(), dayOfWeek = date.getDay()
+
+    if (timezone) {
+      try {
+        const hParts = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone, hour: 'numeric', minute: 'numeric', hour12: false,
+        }).formatToParts(date)
+        const hp = hParts.find(p => p.type === 'hour')
+        const mp = hParts.find(p => p.type === 'minute')
+        if (hp) hour   = parseInt(hp.value) % 24
+        if (mp) minute = parseInt(mp.value)
+
+        const dParts = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone, weekday: 'short',
+        }).formatToParts(date)
+        const dp = dParts.find(p => p.type === 'weekday')
+        if (dp) {
+          const MAP = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+          dayOfWeek = MAP[dp.value] ?? date.getDay()
+        }
+      } catch { /* fall back to local */ }
+    }
+
+    const curMins      = hour * 60 + minute
+    const outsideHours = curMins < startMins || curMins >= endMins
+    const nonWorkDay   = !workDaySet.has(dayOfWeek)
+
+    if (outsideHours || nonWorkDay) {
       flags.push({ rowIndex: i, row: rows[i], reason: 'Off-Hours Posting' })
     }
   }
@@ -724,6 +760,7 @@ export function runAllTests(rows, options = {}) {
   const zScoreThreshold    = options.zScoreThreshold    ?? 3.0
   const splittingThreshold = options.splittingThreshold ?? 10000
   const roundNumberMin     = options.roundNumberMin     ?? 1000
+  const offHoursConfig     = options.offHoursConfig     ?? {}
 
   const allFlags = [
     ...testZeroAmount(rows),
@@ -746,7 +783,7 @@ export function runAllTests(rows, options = {}) {
     ...testPeriodEndClustering(rows),
     ...testDormantAccounts(rows),
     ...testUserConcentration(rows),
-    ...testOffHours(rows),
+    ...testOffHours(rows, offHoursConfig),
     ...testDuplicateEntries(rows),
   ]
 

@@ -31,6 +31,14 @@ export function AuditProvider({ children }) {
     splittingThreshold: 10000,
     roundNumberMin:     1000,
   })
+  const [offHoursConfig, setOffHoursConfig] = useState({
+    startHour: 9,
+    startMin:  0,
+    endHour:   17,
+    endMin:    0,
+    workDays:  [1, 2, 3, 4, 5],
+    timezone:  '',
+  })
 
   const {
     file, rows, headers, missingColumns, columnMap, dataIssues,
@@ -88,8 +96,8 @@ export function AuditProvider({ children }) {
   // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount, ...testConfig })
-  }, [runTests, holidays, maxAmount, testConfig])
+    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount, ...testConfig, offHoursConfig })
+  }, [runTests, holidays, maxAmount, testConfig, offHoursConfig])
 
   // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
   useEffect(() => {
@@ -101,7 +109,7 @@ export function AuditProvider({ children }) {
   // Mark results stale when any filter or config changes after tests have run
   useEffect(() => {
     if (hasRunRef.current) setResultsDirty(true)
-  }, [dateFrom, dateTo, holidays, maxAmount, testConfig])
+  }, [dateFrom, dateTo, holidays, maxAmount, testConfig, offHoursConfig])
 
   const handleReset = useCallback(() => {
     resetFile()
@@ -111,6 +119,7 @@ export function AuditProvider({ children }) {
     setDateTo('')
     setHolidays([])
     setMaxAmount('')
+    setOffHoursConfig({ startHour: 9, startMin: 0, endHour: 17, endMin: 0, workDays: [1, 2, 3, 4, 5], timezone: '' })
     setResultsDirty(false)
     hasRunRef.current = false
   }, [resetFile, resetTests])
@@ -133,6 +142,7 @@ export function AuditProvider({ children }) {
       flaggedEntries, benfordAnalysis, hasRun, isRunning, runTests: runAudit, summary,
       handleReset, loadSession, loadedSessionName,
       testConfig, setTestConfig,
+      offHoursConfig, setOffHoursConfig,
       dateFrom, dateTo, setDateFrom, setDateTo,
       filteredRows, dataDateRange, resultsDirty,
       holidays, addHoliday, removeHoliday, clearHolidays,
