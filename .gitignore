@@ -4,10 +4,30 @@ node_modules/
 # Build output
 dist/
 
-# Local env files
+# Local env files — never commit API keys or secrets
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.test
+
+# Secret / credential files
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+secrets/
+credentials/
+
+# Log files
+*.log
+logs/
+
+# Claude Code local config (may contain permissions and local settings)
+.claude/
 
 # Editor / OS
 .DS_Store
