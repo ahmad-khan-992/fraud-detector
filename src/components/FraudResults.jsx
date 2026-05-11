@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useLanguage } from '../context/LanguageContext'
 import { exportFraudReport } from '../utils/exportReport'
 import { REASON_KEYS, buildTranslatedExplanation } from '../utils/fraudTests'
@@ -95,8 +95,137 @@ function ReasonBadge({ reason, t, sublabel }) {
   )
 }
 
-const PAGE_SIZE = 25
+// ─── User filter multi-select dropdown ───────────────────────────────────────
+function UserFilterDropdown({ userStats, userFilter, setUserFilter, t }) {
+  const [open, setOpen]           = useState(false)
+  const [search, setSearch]       = useState('')
+  const ref                       = useRef(null)
 
+  useEffect(() => {
+    function handleOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [])
+
+  const visibleList = useMemo(() => {
+    if (!search.trim()) return userStats
+    const q = search.toLowerCase()
+    return userStats.filter(([u]) => u.toLowerCase().includes(q))
+  }, [userStats, search])
+
+  function toggle(user) {
+    setUserFilter(prev => {
+      const next = new Set(prev)
+      if (next.has(user)) next.delete(user); else next.add(user)
+      return next
+    })
+  }
+
+  const isActive = userFilter.size > 0
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+          isActive
+            ? 'bg-violet-600 text-white border-violet-600'
+            : 'border-slate-200 text-slate-700 bg-white hover:bg-slate-50'
+        }`}
+      >
+        <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+        {isActive
+          ? t('fraudResults.userFilterSelected', { count: userFilter.size })
+          : t('fraudResults.userFilterAll')}
+        {isActive && (
+          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/30 text-white text-[10px] font-bold">
+            {userFilter.size}
+          </span>
+        )}
+        <svg className={`w-3 h-3 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-64 bg-white rounded-xl border border-slate-200 shadow-xl z-30 overflow-hidden">
+          {/* Search */}
+          <div className="p-2 border-b border-slate-100">
+            <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={t('fraudResults.userSearchPlaceholder')}
+                className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+          </div>
+
+          {/* List */}
+          <div className="max-h-52 overflow-y-auto py-1">
+            {visibleList.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-4">{t('fraudResults.userNoResults')}</p>
+            ) : (
+              visibleList.map(([user, count]) => {
+                const checked = userFilter.has(user)
+                return (
+                  <button
+                    key={user}
+                    onClick={() => toggle(user)}
+                    className="flex items-center gap-2.5 w-full px-3 py-1.5 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                      checked ? 'bg-violet-600 border-violet-600' : 'border-slate-300 bg-white'
+                    }`}>
+                      {checked && (
+                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="flex-1 text-xs text-slate-700 truncate">{user}</span>
+                    <span className={`flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      checked ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50">
+            <button
+              onClick={() => setUserFilter(new Set(userStats.map(([u]) => u)))}
+              className="text-xs text-slate-600 hover:text-slate-900 font-medium transition-colors"
+            >
+              {t('fraudResults.userSelectAll')}
+            </button>
+            <button
+              onClick={() => { setUserFilter(new Set()); setSearch('') }}
+              className="text-xs text-violet-600 hover:text-violet-800 font-medium transition-colors"
+            >
+              {t('fraudResults.userClearAll')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const PAGE_SIZE  = 25
 const RISK_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 
 const AUDIT_PROCEDURES = {
@@ -126,12 +255,13 @@ const AUDIT_PROCEDURES = {
   'Unusually Low Amount (bottom 5%)': ['Confirm the amount is correct and complete', 'Check for potential partial posting or rounding error', 'Obtain supporting documentation'],
 }
 
-function DetailPanel({ entry, onClose, t, holidayMap }) {
+function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
   if (!entry) return null
   const { row, rowIndex, reasons, riskLevel, riskScore } = entry
 
-  const procedures    = [...new Set(reasons.flatMap(r => AUDIT_PROCEDURES[r] || []))]
-  const holidayLabel  = reasons.includes('Holiday Entry') ? getHolidayLabel(row, holidayMap) : null
+  const procedures   = [...new Set(reasons.flatMap(r => AUDIT_PROCEDURES[r] || []))]
+  const holidayLabel = reasons.includes('Holiday Entry') ? getHolidayLabel(row, holidayMap) : null
+  const user         = getField(row, 'User') || '—'
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
@@ -162,6 +292,29 @@ function DetailPanel({ entry, onClose, t, holidayMap }) {
         </div>
 
         <div className="flex-1 p-5 space-y-5">
+          {/* User banner */}
+          <div className="flex items-center justify-between px-3 py-2.5 bg-violet-50 rounded-lg border border-violet-100">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-violet-200 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-violet-500 uppercase tracking-wide">{t('fraudResults.detailUserLabel')}</p>
+                <p className="text-sm font-semibold text-violet-900 leading-tight">{user}</p>
+              </div>
+            </div>
+            {user !== '—' && (
+              <button
+                onClick={() => { onFilterUser(user); onClose() }}
+                className="text-xs text-violet-600 hover:text-violet-800 font-medium border border-violet-200 hover:border-violet-400 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                {t('fraudResults.detailFilterByUser')}
+              </button>
+            )}
+          </div>
+
           {/* Reasons */}
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('fraudResults.detailFlagsTitle')}</p>
@@ -223,12 +376,24 @@ function DetailPanel({ entry, onClose, t, holidayMap }) {
 
 export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
   const { t } = useLanguage()
-  const [page, setPage]             = useState(0)
-  const [testFilter, setTestFilter] = useState('')
-  const [riskFilter, setRiskFilter] = useState('')
-  const [sortCol, setSortCol]       = useState('riskScore')
-  const [sortDir, setSortDir]       = useState('desc')
-  const [detailEntry, setDetailEntry] = useState(null)
+  const [page, setPage]                   = useState(0)
+  const [testFilter, setTestFilter]       = useState('')
+  const [riskFilter, setRiskFilter]       = useState('')
+  const [userFilter, setUserFilter]       = useState(new Set())
+  const [groupByUser, setGroupByUser]     = useState(false)
+  const [sortCol, setSortCol]             = useState('riskScore')
+  const [sortDir, setSortDir]             = useState('desc')
+  const [detailEntry, setDetailEntry]     = useState(null)
+
+  // All unique users with their total flag counts, sorted by count desc
+  const userStats = useMemo(() => {
+    const map = {}
+    for (const entry of flaggedEntries) {
+      const user = getField(entry.row, 'User') || '—'
+      map[user] = (map[user] || 0) + 1
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1])
+  }, [flaggedEntries])
 
   const TEST_OPTIONS = [
     { label: t('fraudResults.testAll'),            value: '' },
@@ -257,53 +422,101 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
     { label: t('fraudResults.testDuplicate'),      value: 'Duplicate Entry' },
   ]
 
-  const filtered = flaggedEntries
-    .filter(e => {
+  const filtered = useMemo(() => {
+    return flaggedEntries.filter(e => {
       const passesTest = !testFilter || e.reasons.some(r =>
         r === testFilter || r.toLowerCase().includes(testFilter.toLowerCase())
       )
       const passesRisk = !riskFilter || e.riskLevel === riskFilter
-      return passesTest && passesRisk
+      const passesUser = userFilter.size === 0 || userFilter.has(getField(e.row, 'User') || '—')
+      return passesTest && passesRisk && passesUser
     })
-    .slice()
-    .sort((a, b) => {
+  }, [flaggedEntries, testFilter, riskFilter, userFilter])
+
+  const sorted = useMemo(() => {
+    return filtered.slice().sort((a, b) => {
+      // When groupByUser is active, primary sort is always by user
+      if (groupByUser) {
+        const ua = (getField(a.row, 'User') || '—').toLowerCase()
+        const ub = (getField(b.row, 'User') || '—').toLowerCase()
+        if (ua !== ub) return ua < ub ? -1 : 1
+        return b.riskScore - a.riskScore
+      }
       let aVal, bVal
-      if (sortCol === 'riskScore') { aVal = a.riskScore; bVal = b.riskScore }
-      else if (sortCol === 'riskLevel') { aVal = RISK_ORDER[a.riskLevel] ?? 9; bVal = RISK_ORDER[b.riskLevel] ?? 9 }
-      else if (sortCol === 'amount') {
+      if (sortCol === 'riskScore') {
+        aVal = a.riskScore; bVal = b.riskScore
+      } else if (sortCol === 'riskLevel') {
+        aVal = RISK_ORDER[a.riskLevel] ?? 9; bVal = RISK_ORDER[b.riskLevel] ?? 9
+      } else if (sortCol === 'amount') {
         aVal = Math.abs(Number(getField(a.row, 'Amount')) || 0)
         bVal = Math.abs(Number(getField(b.row, 'Amount')) || 0)
-      }
-      else if (sortCol === 'postingDate') {
+      } else if (sortCol === 'postingDate') {
         aVal = new Date(getField(a.row, 'Posting Date') || 0).getTime()
         bVal = new Date(getField(b.row, 'Posting Date') || 0).getTime()
+      } else if (sortCol === 'row') {
+        aVal = a.rowIndex; bVal = b.rowIndex
+      } else if (sortCol === 'user') {
+        const ua = (getField(a.row, 'User') || '').toLowerCase()
+        const ub = (getField(b.row, 'User') || '').toLowerCase()
+        return sortDir === 'asc' ? ua.localeCompare(ub) : ub.localeCompare(ua)
+      } else {
+        aVal = 0; bVal = 0
       }
-      else if (sortCol === 'row') { aVal = a.rowIndex; bVal = b.rowIndex }
-      else { aVal = 0; bVal = 0 }
       return sortDir === 'asc' ? aVal - bVal : bVal - aVal
     })
+  }, [filtered, sortCol, sortDir, groupByUser])
 
-  const totalPages  = Math.ceil(filtered.length / PAGE_SIZE)
-  const pageEntries = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const totalPages  = Math.ceil(sorted.length / PAGE_SIZE)
+  const pageEntries = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  // Flat display items with group headers injected when groupByUser is on
+  const displayItems = useMemo(() => {
+    if (!groupByUser) return null
+    const items = []
+    let lastUser = null
+    for (const entry of pageEntries) {
+      const user = getField(entry.row, 'User') || '—'
+      if (user !== lastUser) {
+        const total = userStats.find(([u]) => u === user)?.[1] ?? 0
+        items.push({ type: 'header', user, total })
+        lastUser = user
+      }
+      items.push({ type: 'entry', entry })
+    }
+    return items
+  }, [groupByUser, pageEntries, userStats])
 
   const handleTestFilter = (val) => { setTestFilter(val); setPage(0) }
   const handleRiskFilter = (val) => { setRiskFilter(val); setPage(0) }
+  const handleUserFilter = (val) => { setUserFilter(new Set([val])); setPage(0) }
   const handleSort = (col) => {
+    if (groupByUser) return // sort locked while grouped
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortCol(col); setSortDir('desc') }
+    else { setSortCol(col); setSortDir(col === 'user' ? 'asc' : 'desc') }
     setPage(0)
   }
 
   if (flaggedEntries.length === 0) return null
 
   const SortIcon = ({ col }) => {
+    if (groupByUser) return null
     if (sortCol !== col) return <span className="opacity-30 ml-0.5">↕</span>
     return <span className="ml-0.5">{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
+  const PILL_LIMIT = 7
+
   return (
     <>
-    {detailEntry && <DetailPanel entry={detailEntry} onClose={() => setDetailEntry(null)} t={t} holidayMap={holidayMap} />}
+    {detailEntry && (
+      <DetailPanel
+        entry={detailEntry}
+        onClose={() => setDetailEntry(null)}
+        t={t}
+        holidayMap={holidayMap}
+        onFilterUser={handleUserFilter}
+      />
+    )}
     <div className="card">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
@@ -314,7 +527,7 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters row */}
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={riskFilter}
@@ -338,6 +551,30 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
             ))}
           </select>
 
+          {/* User multi-select */}
+          <UserFilterDropdown
+            userStats={userStats}
+            userFilter={userFilter}
+            setUserFilter={f => { setUserFilter(f); setPage(0) }}
+            t={t}
+          />
+
+          {/* Group by user toggle */}
+          <button
+            onClick={() => { setGroupByUser(g => !g); setPage(0) }}
+            title={t('fraudResults.groupByUser')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+              groupByUser
+                ? 'bg-violet-100 text-violet-700 border-violet-300'
+                : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+            </svg>
+            {t('fraudResults.groupByUser')}
+          </button>
+
           <button
             onClick={() => exportFraudReport(flaggedEntries, 'Fraud_Report.xlsx', holidayMap)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
@@ -349,6 +586,50 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
           </button>
         </div>
       </div>
+
+      {/* User activity strip — quick-filter pills */}
+      {userStats.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-slate-100">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0 mr-0.5">
+            {t('fraudResults.userActivity')}
+          </span>
+          {userStats.slice(0, PILL_LIMIT).map(([user, count]) => {
+            const active = userFilter.has(user)
+            return (
+              <button
+                key={user}
+                onClick={() => {
+                  setUserFilter(prev => {
+                    const next = new Set(prev)
+                    if (next.has(user)) next.delete(user); else next.add(user)
+                    return next
+                  })
+                  setPage(0)
+                }}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                  active
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-700 hover:bg-violet-50'
+                }`}
+              >
+                <span className="font-medium max-w-[88px] truncate">{user}</span>
+                <span className={`text-[10px] font-bold tabular-nums ${active ? 'text-violet-200' : 'text-slate-400'}`}>{count}</span>
+              </button>
+            )
+          })}
+          {userStats.length > PILL_LIMIT && (
+            <span className="text-xs text-slate-400">+{userStats.length - PILL_LIMIT} {t('fraudResults.userMore')}</span>
+          )}
+          {userFilter.size > 0 && (
+            <button
+              onClick={() => { setUserFilter(new Set()); setPage(0) }}
+              className="text-xs text-violet-500 hover:text-violet-700 font-medium ml-1 transition-colors"
+            >
+              {t('fraudResults.userClearAll')}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Click hint */}
       <p className="text-xs text-slate-400 mb-2 flex items-center gap-1">
@@ -375,8 +656,8 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
               <th onClick={() => handleSort('postingDate')} className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-800">
                 {t('fraudResults.colPostingDate')}<SortIcon col="postingDate" />
               </th>
-              <th className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap">
-                {t('fraudResults.colUser')}
+              <th onClick={() => handleSort('user')} className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-800">
+                {t('fraudResults.colUser')}<SortIcon col="user" />
               </th>
               <th onClick={() => handleSort('riskLevel')} className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-800">
                 {t('fraudResults.colRisk')}<SortIcon col="riskLevel" />
@@ -393,56 +674,41 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
             </tr>
           </thead>
           <tbody>
-            {pageEntries.map((entry) => {
-              const { rowIndex, row, reasons, riskLevel, riskScore } = entry
-              const explanation = buildTranslatedExplanation(reasons, t)
-              return (
-                <tr
-                  key={rowIndex}
-                  onClick={() => setDetailEntry(entry)}
-                  className={`border-b border-slate-50 transition-colors cursor-pointer ${RISK_ROW[riskLevel] || ''}`}
-                >
-                  <td className="py-2.5 pr-3 text-slate-400 font-mono tabular-nums">
-                    {rowIndex + 1}
-                  </td>
-                  <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">
-                    {getField(row, 'Account Number') || '—'}
-                  </td>
-                  <td className="py-2.5 pr-3 text-slate-700 tabular-nums whitespace-nowrap">
-                    {formatAmount(getField(row, 'Amount'))}
-                  </td>
-                  <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap">
-                    {formatDate(getField(row, 'Posting Date'))}
-                  </td>
-                  <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap max-w-[100px] truncate">
-                    {getField(row, 'User') || '—'}
-                  </td>
-                  <td className="py-2.5 pr-3 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold ${RISK_BADGE_CLS[riskLevel]}`}>
-                      {t('risk.' + riskLevel)}
-                    </span>
-                  </td>
-                  <td className="py-2.5 pr-3 text-slate-600 font-mono tabular-nums text-center">
-                    {riskScore}
-                  </td>
-                  <td className="py-2.5 pr-3">
-                    <div className="flex flex-wrap gap-1">
-                      {reasons.map(r => (
-                        <ReasonBadge
-                          key={r}
-                          reason={r}
-                          t={t}
-                          sublabel={r === 'Holiday Entry' ? getHolidayLabel(row, holidayMap) || undefined : undefined}
-                        />
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-2 text-slate-500 max-w-[280px]">
-                    <p className="line-clamp-2" title={explanation}>{explanation}</p>
-                  </td>
-                </tr>
-              )
-            })}
+            {groupByUser && displayItems ? (
+              displayItems.map((item, idx) => {
+                if (item.type === 'header') {
+                  return (
+                    <tr key={`h-${item.user}-${idx}`} className="bg-violet-50 border-b border-violet-100">
+                      <td colSpan={9} className="py-1.5 px-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-violet-200 flex items-center justify-center shrink-0">
+                            <svg className="w-3 h-3 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-bold text-violet-800">{item.user}</span>
+                          <span className="text-xs text-violet-500 font-normal">
+                            — {item.total} {t('fraudResults.userFlagCount')}
+                          </span>
+                          <button
+                            onClick={() => { handleUserFilter(item.user); setGroupByUser(false) }}
+                            className="ml-auto text-[10px] text-violet-500 hover:text-violet-700 font-medium border border-violet-200 rounded px-1.5 py-0.5 transition-colors"
+                          >
+                            {t('fraudResults.userFilterOnly')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }
+                const { entry } = item
+                return <EntryRow key={`e-${entry.rowIndex}`} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} />
+              })
+            ) : (
+              pageEntries.map(entry => (
+                <EntryRow key={entry.rowIndex} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} />
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -475,5 +741,53 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
       )}
     </div>
     </>
+  )
+}
+
+// Extracted to avoid re-creating the function inside the map
+function EntryRow({ entry, t, holidayMap, onSelect }) {
+  const { rowIndex, row, reasons, riskLevel, riskScore } = entry
+  const explanation = buildTranslatedExplanation(reasons, t)
+  return (
+    <tr
+      onClick={() => onSelect(entry)}
+      className={`border-b border-slate-50 transition-colors cursor-pointer ${RISK_ROW[riskLevel] || ''}`}
+    >
+      <td className="py-2.5 pr-3 text-slate-400 font-mono tabular-nums">{rowIndex + 1}</td>
+      <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">{getField(row, 'Account Number') || '—'}</td>
+      <td className="py-2.5 pr-3 text-slate-700 tabular-nums whitespace-nowrap">{formatAmount(getField(row, 'Amount'))}</td>
+      <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap">{formatDate(getField(row, 'Posting Date'))}</td>
+      <td className="py-2.5 pr-3 whitespace-nowrap max-w-[110px]">
+        <span className="flex items-center gap-1.5 text-slate-700 truncate">
+          <span className="w-4 h-4 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
+            <svg className="w-2.5 h-2.5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </span>
+          <span className="truncate">{getField(row, 'User') || '—'}</span>
+        </span>
+      </td>
+      <td className="py-2.5 pr-3 whitespace-nowrap">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-semibold ${RISK_BADGE_CLS[riskLevel]}`}>
+          {t('risk.' + riskLevel)}
+        </span>
+      </td>
+      <td className="py-2.5 pr-3 text-slate-600 font-mono tabular-nums text-center">{riskScore}</td>
+      <td className="py-2.5 pr-3">
+        <div className="flex flex-wrap gap-1">
+          {reasons.map(r => (
+            <ReasonBadge
+              key={r}
+              reason={r}
+              t={t}
+              sublabel={r === 'Holiday Entry' ? getHolidayLabel(row, holidayMap) || undefined : undefined}
+            />
+          ))}
+        </div>
+      </td>
+      <td className="py-2.5 pr-2 text-slate-500 max-w-[280px]">
+        <p className="line-clamp-2" title={explanation}>{explanation}</p>
+      </td>
+    </tr>
   )
 }
