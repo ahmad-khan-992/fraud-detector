@@ -1,18 +1,17 @@
 import { useState, useMemo } from 'react'
 import { useLanguage } from '../context/LanguageContext'
 
-// Fixed-date public holidays: [translationKey, MM-DD]
 const PRESETS = [
-  { key: 'newYear',      mmdd: '01-01' },
-  { key: 'labourDay',    mmdd: '05-01' },
-  { key: 'canadaDay',    mmdd: '07-01' },
-  { key: 'bastille',     mmdd: '07-14' },
-  { key: 'indeDay',      mmdd: '07-04' },
-  { key: 'remembrance',  mmdd: '11-11' },
-  { key: 'christmasEve', mmdd: '12-24' },
-  { key: 'christmas',    mmdd: '12-25' },
-  { key: 'boxingDay',    mmdd: '12-26' },
-  { key: 'newYearEve',   mmdd: '12-31' },
+  { key: 'newYear',      mmdd: '01-01', defaultLabel: "New Year's Day" },
+  { key: 'labourDay',    mmdd: '05-01', defaultLabel: 'Labour Day' },
+  { key: 'canadaDay',    mmdd: '07-01', defaultLabel: 'Canada Day' },
+  { key: 'bastille',     mmdd: '07-14', defaultLabel: 'Bastille Day' },
+  { key: 'indeDay',      mmdd: '07-04', defaultLabel: 'Independence Day' },
+  { key: 'remembrance',  mmdd: '11-11', defaultLabel: 'Remembrance Day' },
+  { key: 'christmasEve', mmdd: '12-24', defaultLabel: 'Christmas Eve' },
+  { key: 'christmas',    mmdd: '12-25', defaultLabel: 'Christmas Day' },
+  { key: 'boxingDay',    mmdd: '12-26', defaultLabel: 'Boxing Day' },
+  { key: 'newYearEve',   mmdd: '12-31', defaultLabel: "New Year's Eve" },
 ]
 
 function formatDisplay(dateStr) {
@@ -22,11 +21,14 @@ function formatDisplay(dateStr) {
   })
 }
 
-export default function HolidayFilter({ holidays, addHoliday, removeHoliday, clearHolidays, filteredRows, dataDateRange }) {
+export default function HolidayFilter({
+  holidays, addHoliday, removeHoliday, updateHolidayLabel, clearHolidays,
+  filteredRows, dataDateRange,
+}) {
   const { t } = useLanguage()
-  const [inputDate, setInputDate] = useState('')
+  const [inputDate,  setInputDate]  = useState('')
+  const [inputLabel, setInputLabel] = useState('')
 
-  // Derive year list from data range for the quick-add section
   const years = useMemo(() => {
     if (!dataDateRange) return [new Date().getFullYear()]
     const minY = dataDateRange.min.getFullYear()
@@ -36,18 +38,16 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
     return list
   }, [dataDateRange])
 
-  const [selectedYear, setSelectedYear] = useState(() => {
-    if (!dataDateRange) return new Date().getFullYear()
-    return dataDateRange.max.getFullYear()
-  })
+  const [selectedYear, setSelectedYear] = useState(() =>
+    dataDateRange ? dataDateRange.max.getFullYear() : new Date().getFullYear()
+  )
 
-  // Update selectedYear when dataDateRange becomes available
   useMemo(() => {
     if (dataDateRange) setSelectedYear(dataDateRange.max.getFullYear())
   }, [dataDateRange])
 
-  // Count how many filtered rows fall on a holiday date
-  const holidaySet = useMemo(() => new Set(holidays), [holidays])
+  const holidaySet = useMemo(() => new Set(holidays.map(h => h.date)), [holidays])
+
   const flaggedCount = useMemo(() => {
     let count = 0
     for (const row of filteredRows) {
@@ -66,23 +66,25 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
   }, [filteredRows, holidaySet])
 
   function handleAdd() {
-    if (inputDate) {
-      addHoliday(inputDate)
-      setInputDate('')
-    }
+    if (!inputDate) return
+    addHoliday(inputDate, inputLabel)
+    setInputDate('')
+    setInputLabel('')
   }
 
   function handleKeyDown(e) {
     if (e.key === 'Enter') handleAdd()
   }
 
-  function addPreset(mmdd) {
-    addHoliday(`${selectedYear}-${mmdd}`)
+  function addPreset(mmdd, defaultLabel) {
+    addHoliday(`${selectedYear}-${mmdd}`, defaultLabel)
   }
 
   const minInput = dataDateRange
     ? `${dataDateRange.min.getFullYear()}-${String(dataDateRange.min.getMonth()+1).padStart(2,'0')}-${String(dataDateRange.min.getDate()).padStart(2,'0')}`
     : undefined
+
+  const inputCls = 'border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors'
 
   return (
     <div className="card">
@@ -100,7 +102,6 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
           </div>
         </div>
 
-        {/* Flagged count badge */}
         {holidays.length > 0 && (
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 ${
             flaggedCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'
@@ -118,8 +119,6 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('holidayFilter.quickAdd')}</span>
-
-          {/* Year selector — only shown when data spans multiple years */}
           {years.length > 1 && (
             <select
               value={selectedYear}
@@ -130,26 +129,23 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
             </select>
           )}
         </div>
-
         <div className="flex flex-wrap gap-1.5">
-          {PRESETS.map(({ key, mmdd }) => {
-            const dateStr  = `${selectedYear}-${mmdd}`
-            const added    = holidaySet.has(dateStr)
+          {PRESETS.map(({ key, mmdd, defaultLabel }) => {
+            const dateStr = `${selectedYear}-${mmdd}`
+            const added   = holidaySet.has(dateStr)
             return (
               <button
                 key={key}
-                onClick={() => addPreset(mmdd)}
+                onClick={() => addPreset(mmdd, defaultLabel)}
                 disabled={added}
-                title={added ? t('holidayFilter.alreadyAdded') : undefined}
+                title={added ? t('holidayFilter.alreadyAdded') : defaultLabel}
                 className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
                   added
                     ? 'bg-rose-50 border-rose-200 text-rose-400 cursor-default'
                     : 'border-slate-200 text-slate-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700'
                 }`}
               >
-                {added && (
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 mr-1.5 align-middle" />
-                )}
+                {added && <span className="inline-block w-1.5 h-1.5 rounded-full bg-rose-400 mr-1.5 align-middle" />}
                 {t(`holidayFilter.${key}`)}
               </button>
             )
@@ -157,24 +153,33 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
         </div>
       </div>
 
-      {/* Manual date input */}
-      <div className="flex gap-2 mb-4">
-        <input
-          type="date"
-          value={inputDate}
-          min={minInput}
-          onChange={e => setInputDate(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t('holidayFilter.addPlaceholder')}
-          className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-colors"
-        />
-        <button
-          onClick={handleAdd}
-          disabled={!inputDate || holidaySet.has(inputDate)}
-          className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {t('holidayFilter.add')}
-        </button>
+      {/* Manual date + label input */}
+      <div className="space-y-2 mb-4">
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={inputDate}
+            min={minInput}
+            onChange={e => setInputDate(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className={`flex-shrink-0 w-44 ${inputCls}`}
+          />
+          <input
+            type="text"
+            value={inputLabel}
+            onChange={e => setInputLabel(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('holidayFilter.labelPlaceholder')}
+            className={`flex-1 min-w-0 ${inputCls}`}
+          />
+          <button
+            onClick={handleAdd}
+            disabled={!inputDate || holidaySet.has(inputDate)}
+            className="shrink-0 px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {t('holidayFilter.add')}
+          </button>
+        </div>
       </div>
 
       {/* Holiday list */}
@@ -188,18 +193,30 @@ export default function HolidayFilter({ holidays, addHoliday, removeHoliday, cle
         </div>
       ) : (
         <div className="space-y-1.5">
-          {holidays.map(dateStr => (
+          {holidays.map(({ date: dateStr, label }) => (
             <div
               key={dateStr}
-              className="flex items-center justify-between px-3 py-2 rounded-lg bg-rose-50 border border-rose-100"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-rose-50 border border-rose-100"
             >
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-                <span className="text-xs font-medium text-rose-800">{formatDisplay(dateStr)}</span>
-              </div>
+              {/* Date */}
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+              <span className="text-xs font-medium text-rose-800 whitespace-nowrap shrink-0">
+                {formatDisplay(dateStr)}
+              </span>
+
+              {/* Editable label */}
+              <input
+                type="text"
+                value={label}
+                onChange={e => updateHolidayLabel(dateStr, e.target.value)}
+                placeholder={t('holidayFilter.labelPlaceholder')}
+                className="flex-1 min-w-0 text-xs bg-transparent border-0 border-b border-dashed border-rose-200 text-rose-700 placeholder-rose-300 focus:outline-none focus:border-rose-500 px-1 py-0.5 transition-colors"
+              />
+
+              {/* Remove */}
               <button
                 onClick={() => removeHoliday(dateStr)}
-                className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
+                className="shrink-0 p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
                 title={t('holidayFilter.remove')}
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

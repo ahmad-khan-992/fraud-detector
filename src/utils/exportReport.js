@@ -14,30 +14,46 @@ function formatDateForExport(val) {
   return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString()
 }
 
-export function exportFraudReport(flaggedEntries, filename = 'Fraud_Report.xlsx') {
+function dateToKey(val) {
+  if (!val && val !== 0) return null
+  let d
+  if (val instanceof Date) d = val
+  else if (typeof val === 'number' && val > 0) d = new Date(Math.round((val - 25569) * 86400 * 1000))
+  else { d = new Date(val); if (isNaN(d.getTime())) return null }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export function exportFraudReport(flaggedEntries, filename = 'Fraud_Report.xlsx', holidayMap = {}) {
   const wb = XLSX.utils.book_new()
 
   // Sheet 1: Flagged Entries
-  const reportData = flaggedEntries.map((entry, idx) => ({
-    'No.':             idx + 1,
-    'Row #':           entry.rowIndex + 1,
-    'Account Number':  getField(entry.row, 'Account Number'),
-    'Amount':          getField(entry.row, 'Amount'),
-    'Posting Date':    formatDateForExport(getField(entry.row, 'Posting Date')),
-    'Effective Date':  formatDateForExport(getField(entry.row, 'Effective Date')),
-    'JE Narration':    getField(entry.row, 'JE Narration'),
-    'User':            getField(entry.row, 'User'),
-    'Risk Score':      entry.riskScore,
-    'Risk Level':      entry.riskLevel,
-    'Triggered Tests': entry.reasons.join(', '),
-    'Explanation':     buildExplanation(entry.reasons),
-  }))
+  const reportData = flaggedEntries.map((entry, idx) => {
+    const postingRaw  = getField(entry.row, 'Posting Date')
+    const holidayName = entry.reasons.includes('Holiday Entry')
+      ? (() => { const k = dateToKey(postingRaw); return k ? (holidayMap[k] || '') : '' })()
+      : ''
+    return {
+      'No.':             idx + 1,
+      'Row #':           entry.rowIndex + 1,
+      'Account Number':  getField(entry.row, 'Account Number'),
+      'Amount':          getField(entry.row, 'Amount'),
+      'Posting Date':    formatDateForExport(postingRaw),
+      'Effective Date':  formatDateForExport(getField(entry.row, 'Effective Date')),
+      'JE Narration':    getField(entry.row, 'JE Narration'),
+      'User':            getField(entry.row, 'User'),
+      'Risk Score':      entry.riskScore,
+      'Risk Level':      entry.riskLevel,
+      'Triggered Tests': entry.reasons.join(', '),
+      'Holiday Name':    holidayName,
+      'Explanation':     buildExplanation(entry.reasons),
+    }
+  })
 
   const ws1 = XLSX.utils.json_to_sheet(reportData)
   ws1['!cols'] = [
     { wch: 5 }, { wch: 6 }, { wch: 18 }, { wch: 14 }, { wch: 14 },
     { wch: 14 }, { wch: 40 }, { wch: 18 }, { wch: 11 }, { wch: 12 },
-    { wch: 60 }, { wch: 80 },
+    { wch: 60 }, { wch: 28 }, { wch: 80 },
   ]
   XLSX.utils.book_append_sheet(wb, ws1, 'Flagged Entries')
 

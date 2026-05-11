@@ -50,6 +50,21 @@ function getField(row, fieldName) {
   return key !== undefined ? row[key] : ''
 }
 
+function dateToKey(val) {
+  if (!val && val !== 0) return null
+  let d
+  if (val instanceof Date) d = val
+  else if (typeof val === 'number' && val > 0) d = new Date(Math.round((val - 25569) * 86400 * 1000))
+  else { d = new Date(val); if (isNaN(d.getTime())) return null }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function getHolidayLabel(row, holidayMap) {
+  if (!holidayMap || Object.keys(holidayMap).length === 0) return null
+  const key = dateToKey(getField(row, 'Posting Date'))
+  return key ? (holidayMap[key] || null) : null
+}
+
 function formatAmount(val) {
   const n = Number(val)
   if (isNaN(n)) return val ?? '—'
@@ -63,13 +78,19 @@ function formatDate(val) {
   return isNaN(d.getTime()) ? String(val) : d.toLocaleDateString()
 }
 
-function ReasonBadge({ reason, t }) {
+function ReasonBadge({ reason, t, sublabel }) {
   const cls = REASON_BADGE[reason] || 'bg-slate-100 text-slate-700 border-slate-200'
   const key = REASON_KEYS[reason]
   const label = key ? t('reasons.' + key) : reason
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded border text-xs font-medium ${cls}`}>
-      {label}
+    <span
+      className={`inline-flex flex-col px-2 py-0.5 rounded border text-xs font-medium ${cls}`}
+      title={sublabel || undefined}
+    >
+      <span>{label}</span>
+      {sublabel && (
+        <span className="text-[10px] font-normal opacity-75 leading-tight">{sublabel}</span>
+      )}
     </span>
   )
 }
@@ -105,11 +126,12 @@ const AUDIT_PROCEDURES = {
   'Unusually Low Amount (bottom 5%)': ['Confirm the amount is correct and complete', 'Check for potential partial posting or rounding error', 'Obtain supporting documentation'],
 }
 
-function DetailPanel({ entry, onClose, t }) {
+function DetailPanel({ entry, onClose, t, holidayMap }) {
   if (!entry) return null
   const { row, rowIndex, reasons, riskLevel, riskScore } = entry
 
-  const procedures = [...new Set(reasons.flatMap(r => AUDIT_PROCEDURES[r] || []))]
+  const procedures    = [...new Set(reasons.flatMap(r => AUDIT_PROCEDURES[r] || []))]
+  const holidayLabel  = reasons.includes('Holiday Entry') ? getHolidayLabel(row, holidayMap) : null
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
@@ -144,8 +166,24 @@ function DetailPanel({ entry, onClose, t }) {
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('fraudResults.detailFlagsTitle')}</p>
             <div className="flex flex-wrap gap-1.5">
-              {reasons.map(r => <ReasonBadge key={r} reason={r} t={t} />)}
+              {reasons.map(r => (
+                <ReasonBadge
+                  key={r}
+                  reason={r}
+                  t={t}
+                  sublabel={r === 'Holiday Entry' && holidayLabel ? holidayLabel : undefined}
+                />
+              ))}
             </div>
+            {holidayLabel && (
+              <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-rose-50 rounded-lg border border-rose-100">
+                <svg className="w-3.5 h-3.5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
+                <span className="text-xs font-semibold text-rose-700">{t('holidayFilter.holidayNameLabel')}:</span>
+                <span className="text-xs text-rose-600">{holidayLabel}</span>
+              </div>
+            )}
           </div>
 
           {/* All row fields */}
@@ -183,7 +221,7 @@ function DetailPanel({ entry, onClose, t }) {
   )
 }
 
-export default function FraudResults({ flaggedEntries }) {
+export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
   const { t } = useLanguage()
   const [page, setPage]             = useState(0)
   const [testFilter, setTestFilter] = useState('')
@@ -265,7 +303,7 @@ export default function FraudResults({ flaggedEntries }) {
 
   return (
     <>
-    {detailEntry && <DetailPanel entry={detailEntry} onClose={() => setDetailEntry(null)} t={t} />}
+    {detailEntry && <DetailPanel entry={detailEntry} onClose={() => setDetailEntry(null)} t={t} holidayMap={holidayMap} />}
     <div className="card">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
@@ -301,7 +339,7 @@ export default function FraudResults({ flaggedEntries }) {
           </select>
 
           <button
-            onClick={() => exportFraudReport(flaggedEntries)}
+            onClick={() => exportFraudReport(flaggedEntries, 'Fraud_Report.xlsx', holidayMap)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -389,7 +427,14 @@ export default function FraudResults({ flaggedEntries }) {
                   </td>
                   <td className="py-2.5 pr-3">
                     <div className="flex flex-wrap gap-1">
-                      {reasons.map(r => <ReasonBadge key={r} reason={r} t={t} />)}
+                      {reasons.map(r => (
+                        <ReasonBadge
+                          key={r}
+                          reason={r}
+                          t={t}
+                          sublabel={r === 'Holiday Entry' ? getHolidayLabel(row, holidayMap) || undefined : undefined}
+                        />
+                      ))}
                     </div>
                   </td>
                   <td className="py-2.5 pr-2 text-slate-500 max-w-[280px]">

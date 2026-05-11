@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FileUpload from '../components/FileUpload'
 import ColumnValidation from '../components/ColumnValidation'
@@ -47,13 +47,18 @@ export default function Dashboard() {
     loadedSessionName,
     dateFrom, dateTo, setDateFrom, setDateTo,
     filteredRows, dataDateRange, resultsDirty,
-    holidays, addHoliday, removeHoliday, clearHolidays,
+    holidays, addHoliday, removeHoliday, updateHolidayLabel, clearHolidays,
     maxAmount, setMaxAmount,
     testConfig, setTestConfig,
     offHoursConfig, setOffHoursConfig,
   } = useAudit()
 
   const [demoError, setDemoError] = useState(null)
+
+  const holidayMap = useMemo(
+    () => Object.fromEntries(holidays.filter(h => h.label).map(h => [h.date, h.label])),
+    [holidays]
+  )
 
   const loadDemoData = useCallback(async () => {
     setDemoError(null)
@@ -175,6 +180,7 @@ export default function Dashboard() {
               holidays={holidays}
               addHoliday={addHoliday}
               removeHoliday={removeHoliday}
+              updateHolidayLabel={updateHolidayLabel}
               clearHolidays={clearHolidays}
               filteredRows={filteredRows}
               dataDateRange={dataDateRange}
@@ -284,7 +290,7 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <FraudResults flaggedEntries={flaggedEntries} />
+              <FraudResults flaggedEntries={flaggedEntries} holidayMap={holidayMap} />
             </>
           )}
         </>

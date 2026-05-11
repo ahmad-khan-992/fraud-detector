@@ -82,13 +82,21 @@ export function AuditProvider({ children }) {
     return min ? { min, max } : null
   }, [rows])
 
-  // Holiday helpers exposed to components
-  const addHoliday = useCallback((dateStr) => {
-    setHolidays(prev => prev.includes(dateStr) ? prev : [...prev, dateStr].sort())
+  // Holiday helpers exposed to components — each holiday is { date: 'YYYY-MM-DD', label: string }
+  const addHoliday = useCallback((dateStr, label = '') => {
+    setHolidays(prev =>
+      prev.some(h => h.date === dateStr)
+        ? prev
+        : [...prev, { date: dateStr, label: label.trim() }].sort((a, b) => a.date < b.date ? -1 : 1)
+    )
   }, [])
 
   const removeHoliday = useCallback((dateStr) => {
-    setHolidays(prev => prev.filter(d => d !== dateStr))
+    setHolidays(prev => prev.filter(h => h.date !== dateStr))
+  }, [])
+
+  const updateHolidayLabel = useCallback((dateStr, label) => {
+    setHolidays(prev => prev.map(h => h.date === dateStr ? { ...h, label: label } : h))
   }, [])
 
   const clearHolidays = useCallback(() => setHolidays([]), [])
@@ -96,7 +104,7 @@ export function AuditProvider({ children }) {
   // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun, { holidayDates: new Set(holidays), maxAmount, ...testConfig, offHoursConfig })
+    runTests(rowsToRun, { holidayDates: new Set(holidays.map(h => h.date)), maxAmount, ...testConfig, offHoursConfig })
   }, [runTests, holidays, maxAmount, testConfig, offHoursConfig])
 
   // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
@@ -145,7 +153,7 @@ export function AuditProvider({ children }) {
       offHoursConfig, setOffHoursConfig,
       dateFrom, dateTo, setDateFrom, setDateTo,
       filteredRows, dataDateRange, resultsDirty,
-      holidays, addHoliday, removeHoliday, clearHolidays,
+      holidays, addHoliday, removeHoliday, updateHolidayLabel, clearHolidays,
       maxAmount, setMaxAmount,
     }}>
       {children}

@@ -11,6 +11,15 @@ function getField(row, fieldName) {
   return key !== undefined ? row[key] : ''
 }
 
+function dateToKey(val) {
+  if (!val && val !== 0) return null
+  let d
+  if (val instanceof Date) d = val
+  else if (typeof val === 'number' && val > 0) d = new Date(Math.round((val - 25569) * 86400 * 1000))
+  else { d = new Date(val); if (isNaN(d.getTime())) return null }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function formatAmount(val) {
   const n = Number(val)
   if (isNaN(n)) return val ?? '—'
@@ -105,13 +114,14 @@ function RunningState({ t }) {
 }
 
 export default function ReportPage() {
-  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows } = useAudit()
+  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows, holidays } = useAudit()
   const { t } = useLanguage()
 
   if (isRunning) return <RunningState t={t} />
   if (!hasRun) return <EmptyState hasData={rows.length > 0} t={t} />
 
   const { total, flagged, riskPercent, riskCounts, reasonCounts } = summary
+  const holidayMap = Object.fromEntries((holidays || []).filter(h => h.label).map(h => [h.date, h.label]))
   const insights        = generateInsights(summary, t)
   const keyFindings     = insights.slice(0, 4)
   const flagPct         = parseFloat(riskPercent)
@@ -161,7 +171,7 @@ export default function ReportPage() {
           </div>
           <div className="flex gap-2 shrink-0 no-print">
             <button
-              onClick={() => exportFraudReport(flaggedEntries, `Fraud_Report_${Date.now()}.xlsx`)}
+              onClick={() => exportFraudReport(flaggedEntries, `Fraud_Report_${Date.now()}.xlsx`, holidayMap)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -299,11 +309,21 @@ export default function ReportPage() {
                   <td className="py-2.5 pr-2">
                     <div className="flex flex-wrap gap-1">
                       {reasons.slice(0, 3).map(r => {
-                        const rk = REASON_KEYS[r]
-                        const label = rk ? t('reasons.' + rk) : r
+                        const rk  = REASON_KEYS[r]
+                        const lbl = rk ? t('reasons.' + rk) : r
+                        const holidayName = r === 'Holiday Entry'
+                          ? (() => { const k = dateToKey(getField(row, 'Posting Date')); return k ? holidayMap[k] : null })()
+                          : null
                         return (
-                          <span key={r} className="inline-flex px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap">
-                            {label.length > 22 ? label.slice(0, 22) + '…' : label}
+                          <span
+                            key={r}
+                            title={holidayName || undefined}
+                            className="inline-flex flex-col px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap"
+                          >
+                            <span>{lbl.length > 22 ? lbl.slice(0, 22) + '…' : lbl}</span>
+                            {holidayName && (
+                              <span className="text-[10px] text-rose-600 font-normal leading-tight">{holidayName}</span>
+                            )}
                           </span>
                         )
                       })}
