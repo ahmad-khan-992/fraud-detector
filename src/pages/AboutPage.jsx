@@ -109,6 +109,8 @@ const ICONS = {
   compat: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
   users: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
   secShield: <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>,
+  clock: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+  userGroup: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>,
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -134,7 +136,9 @@ export default function AboutPage() {
     { icon: ICONS.cog,       title: t('about.feat6Title'), description: t('about.feat6Desc') },
     { icon: ICONS.archive,   title: t('about.feat7Title'), description: t('about.feat7Desc') },
     { icon: ICONS.exportFeat,title: t('about.feat8Title'), description: t('about.feat8Desc') },
-    { icon: ICONS.calendar,  title: t('about.feat9Title'), description: t('about.feat9Desc') },
+    { icon: ICONS.calendar,  title: t('about.feat9Title'),  description: t('about.feat9Desc') },
+    { icon: ICONS.clock,     title: t('about.feat10Title'), description: t('about.feat10Desc') },
+    { icon: ICONS.userGroup, title: t('about.feat11Title'), description: t('about.feat11Desc') },
   ]
 
   const AUDIENCE = [
@@ -159,11 +163,13 @@ export default function AboutPage() {
     { question: t('about.faq5Q'), answer: t('about.faq5A') },
     { question: t('about.faq6Q'), answer: t('about.faq6A') },
     { question: t('about.faq7Q'), answer: t('about.faq7A') },
-    { question: t('about.faq8Q'), answer: t('about.faq8A') },
+    { question: t('about.faq8Q'),  answer: t('about.faq8A')  },
+    { question: t('about.faq9Q'),  answer: t('about.faq9A')  },
+    { question: t('about.faq10Q'), answer: t('about.faq10A') },
   ]
 
   const GLANCE_STATS = [
-    ['21', t('about.glanceStat1')],
+    ['23', t('about.glanceStat1')],
     ['6',  t('about.glanceStat2')],
     ['5',  t('about.glanceStat3')],
     ['2',  t('about.glanceStat4')],
