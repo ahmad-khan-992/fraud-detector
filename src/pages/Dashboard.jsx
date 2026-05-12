@@ -66,12 +66,6 @@ export default function Dashboard() {
       const res = await fetch('/sample-data.csv')
       if (!res.ok) throw new Error('Could not load sample file')
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'sample_fraud_data.csv'
-      a.click()
-      URL.revokeObjectURL(url)
       processFile(new File([blob], 'AnomalyScanner-Demo-Data.csv', { type: 'text/csv' }))
     } catch (err) {
       setDemoError(err.message)

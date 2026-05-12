@@ -22,6 +22,15 @@ export default function FileUpload({ onFile, file, error, fileWarning, onReset, 
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
+  function downloadFile(f) {
+    const url = URL.createObjectURL(f)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = f.name
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Parse warning type
   const warnType  = fileWarning?.split(':')[0]
   const warnValue = fileWarning?.split(':')[1]
@@ -88,13 +97,25 @@ export default function FileUpload({ onFile, file, error, fileWarning, onReset, 
         </>
       ) : (
         <div className="flex items-center gap-4 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-600 shrink-0">
+          <button
+            type="button"
+            onClick={() => downloadFile(file)}
+            title={`Download ${file.name}`}
+            className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand-600 hover:bg-brand-700 shrink-0 transition-colors"
+          >
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-          </div>
+          </button>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-slate-900 truncate">{file.name}</p>
+            <button
+              type="button"
+              onClick={() => downloadFile(file)}
+              title={`Download ${file.name}`}
+              className="text-sm font-medium text-slate-900 hover:text-indigo-600 hover:underline underline-offset-2 truncate block text-left transition-colors max-w-full"
+            >
+              {file.name}
+            </button>
             <p className="text-xs text-slate-500 mt-0.5">{formatSize(file.size)}</p>
           </div>
           <div className="shrink-0">
