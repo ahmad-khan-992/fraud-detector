@@ -76,12 +76,12 @@ export default function FileUpload({ onFile, file, error, fileWarning, onReset, 
               <button
                 type="button"
                 onClick={onLoadDemo}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-brand-600 hover:text-brand-700 border border-brand-200 hover:border-brand-300 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors"
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl btn-sample-glow"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" />
                 </svg>
-                Try with sample fraud data
+                {t('fileUpload.trySample')}
               </button>
             </>
           )}

@@ -50,6 +50,50 @@
   animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Sample fraud data button — pulsing amber glow + shimmer sweep */
+@keyframes samplePulse {
+  0%, 100% {
+    box-shadow: 0 0 6px 1px rgba(245, 158, 11, 0.20), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  50% {
+    box-shadow: 0 0 24px 8px rgba(245, 158, 11, 0.55), 0 0 48px 16px rgba(251, 191, 36, 0.22), 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@keyframes sampleShimmer {
+  0%   { background-position: 160% center; }
+  100% { background-position: -160% center; }
+}
+
+.btn-sample-glow {
+  background: linear-gradient(
+    100deg,
+    #fde68a 0%,
+    #fef3c7 36%,
+    rgba(255, 255, 255, 0.88) 50%,
+    #fef3c7 64%,
+    #fde68a 100%
+  );
+  background-size: 260% 100%;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  animation: samplePulse 2s ease-in-out infinite, sampleShimmer 2s linear infinite;
+}
+
+.btn-sample-glow:hover {
+  color: #78350f;
+  border-color: #d97706;
+  background: linear-gradient(
+    100deg,
+    #fcd34d 0%,
+    #fde68a 36%,
+    rgba(255, 255, 255, 0.92) 50%,
+    #fde68a 64%,
+    #fcd34d 100%
+  );
+  background-size: 260% 100%;
+}
+
 /* Print styles */
 @media print {
   .no-print { display: none !important; }
