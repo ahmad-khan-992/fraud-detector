@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { parseExcelFile, applyColumnOverrides } from '../utils/parseExcel'
+import { normalizeSplitAmounts } from '../utils/splitAmount'
 
 const ACCEPTED_TYPES = [
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -32,9 +33,16 @@ export function useFileParser() {
   const [fileWarning, setFileWarning]     = useState(null)  // #17
   const [sheetNames, setSheetNames]       = useState([])    // #15
   const [selectedSheet, setSelectedSheet] = useState(null)  // #15
+  const [amountFormat, setAmountFormat]   = useState('unknown')
+  const [splitInfo, setSplitInfo]         = useState(null)
+  const [signConvention, setSignConventionState] = useState(
+    () => sessionStorage.getItem('je_sign_convention') || 'debit_positive'
+  )
 
   // Raw rows before column normalization — needed for manual re-mapping (#16)
   const rawRowsRef = useRef([])
+  // Normalized rows ref — used for sign-convention swap without a full re-parse
+  const normalizedRowsRef = useRef([])
 
   const reset = useCallback(() => {
     setFile(null)
@@ -48,15 +56,37 @@ export function useFileParser() {
     setFileWarning(null)
     setSheetNames([])
     setSelectedSheet(null)
+    setAmountFormat('unknown')
+    setSplitInfo(null)
     rawRowsRef.current = []
+    normalizedRowsRef.current = []
   }, [])
 
   const applyResult = useCallback((result) => {
-    setRows(result.rows)
+    // Apply stored sign convention if Format B/C
+    let finalRows = result.rows
+    let finalSplitInfo = result.splitInfo ?? null
+    const fmt = result.amountFormat ?? 'unknown'
+
+    if (fmt === 'BC' && finalSplitInfo) {
+      const storedConvention = sessionStorage.getItem('je_sign_convention') || 'debit_positive'
+      const swapped = storedConvention === 'credit_positive'
+      if (swapped) {
+        const { rows: reNormalized, ...stats } = normalizeSplitAmounts(finalRows, true)
+        finalRows = reNormalized
+        finalSplitInfo = { ...finalSplitInfo, ...stats }
+      }
+      setSignConventionState(storedConvention)
+    }
+
+    normalizedRowsRef.current = finalRows
+    setRows(finalRows)
     setHeaders(result.headers)
     setMissing(result.missingColumns)
     setColumnMap(result.columnMap)
     setDataIssues(result.dataIssues)
+    setAmountFormat(fmt)
+    setSplitInfo(finalSplitInfo)
     if (result.sheetNames) setSheetNames(result.sheetNames)
     if (result.selectedSheet) setSelectedSheet(result.selectedSheet)
 
@@ -120,15 +150,24 @@ export function useFileParser() {
     if (!rawRowsRef.current.length) return
     try {
       const result = applyColumnOverrides(rawRowsRef.current, columnMap, overrideMap)
-      setRows(result.rows)
-      setHeaders(result.headers)
-      setMissing(result.missingColumns)
-      setColumnMap(result.columnMap)
-      setDataIssues(result.dataIssues)
+      applyResult(result)
     } catch (err) {
       setParseError(`Column mapping failed: ${err.message}`)
     }
-  }, [columnMap])
+  }, [columnMap, applyResult])
+
+  // Re-normalize split amounts with opposite sign convention
+  const swapSignConvention = useCallback(() => {
+    if (amountFormat !== 'BC' || !normalizedRowsRef.current.length) return
+    const nextSwapped = signConvention !== 'credit_positive'
+    const { rows: reNormalized, ...stats } = normalizeSplitAmounts(normalizedRowsRef.current, nextSwapped)
+    normalizedRowsRef.current = reNormalized
+    setRows(reNormalized)
+    setSplitInfo(prev => ({ ...prev, ...stats }))
+    const convention = nextSwapped ? 'credit_positive' : 'debit_positive'
+    setSignConventionState(convention)
+    sessionStorage.setItem('je_sign_convention', convention)
+  }, [amountFormat, signConvention])
 
   return {
     file,
@@ -143,9 +182,13 @@ export function useFileParser() {
     fileWarning,
     sheetNames,
     selectedSheet,
+    amountFormat,
+    splitInfo,
+    signConvention,
     processFile,
     selectSheet,
     applyManualMapping,
+    swapSignConvention,
     reset,
   }
 }

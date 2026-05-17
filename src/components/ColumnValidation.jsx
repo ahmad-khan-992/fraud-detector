@@ -3,6 +3,27 @@ import { useLanguage } from '../context/LanguageContext'
 import { REQUIRED_COLUMNS } from '../utils/columnConfig'
 import { suggestColumnMapping } from '../utils/aiColumnMapping'
 
+function ColChip({ col, present, matchedAs }) {
+  const isAlias = present && matchedAs && matchedAs !== col
+  return (
+    <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${present ? 'bg-emerald-50' : 'bg-red-50'}`}>
+      {present ? (
+        <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg className="w-3 h-3 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      )}
+      <div className="min-w-0">
+        <p className={`text-[11px] font-semibold truncate ${present ? 'text-emerald-800' : 'text-red-800'}`}>{col}</p>
+        {isAlias && <p className="text-[10px] text-emerald-600 truncate font-mono">{matchedAs}</p>}
+      </div>
+    </div>
+  )
+}
+
 const SEVERITY_STYLES = {
   pass: {
     row:    'bg-emerald-50 border-emerald-100',
@@ -52,7 +73,7 @@ function ChevronIcon({ open }) {
   )
 }
 
-export default function ColumnValidation({ headers, missingColumns, columnMap = {}, dataIssues = [], applyManualMapping, sampleRows = [] }) {
+export default function ColumnValidation({ headers, missingColumns, columnMap = {}, dataIssues = [], applyManualMapping, sampleRows = [], amountFormat = 'A', splitInfo = null }) {
   const { t } = useLanguage()
 
   const isValid    = missingColumns.length === 0
@@ -285,27 +306,27 @@ export default function ColumnValidation({ headers, missingColumns, columnMap = 
             {/* Column grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
               {REQUIRED_COLUMNS.map(col => {
-                const present   = !missingColumns.includes(col)
-                const matchedAs = columnMap[col]
-                const isAlias   = present && matchedAs && matchedAs !== col
-                return (
-                  <div key={col} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${present ? 'bg-emerald-50' : 'bg-red-50'}`}>
-                    {present ? (
-                      <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3 h-3 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                    <div className="min-w-0">
-                      <p className={`text-[11px] font-semibold truncate ${present ? 'text-emerald-800' : 'text-red-800'}`}>{col}</p>
-                      {isAlias && (
-                        <p className="text-[10px] text-emerald-600 truncate font-mono">{matchedAs}</p>
-                      )}
+                // In Format B/C, replace the Amount slot with Debit Amount + Credit Amount
+                if (col === 'Amount' && amountFormat === 'BC') {
+                  return (
+                    <div key={col} className="col-span-2 sm:col-span-3 space-y-1.5">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <ColChip col="Debit Amount"  present matchedAs={splitInfo?.debitHeader} />
+                        <ColChip col="Credit Amount" present matchedAs={splitInfo?.creditHeader} />
+                      </div>
+                      <p className="text-[11px] text-indigo-600 px-1">
+                        ℹ These will be merged into a single signed Amount column before analysis.
+                      </p>
                     </div>
-                  </div>
+                  )
+                }
+                return (
+                  <ColChip
+                    key={col}
+                    col={col}
+                    present={!missingColumns.includes(col)}
+                    matchedAs={columnMap[col]}
+                  />
                 )
               })}
             </div>

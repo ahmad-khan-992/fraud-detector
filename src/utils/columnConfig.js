@@ -33,6 +33,22 @@ export const COLUMN_ALIASES = {
     'value',
   ],
 
+  'Debit Amount': [
+    'debit', 'dr', 'dr amount', 'debit amount', 'dr_amount', 'debit_amount',
+    'debit value', 'dr value', 'debit_value', 'dr_value',
+    'debit total', 'debit side', 'debit_total', 'debit_side',
+    'lc debit', 'local debit', 'lc_debit', 'local_debit',
+    'debit (usd)', 'debit (gbp)', 'debit (eur)',
+  ],
+
+  'Credit Amount': [
+    'credit', 'cr', 'cr amount', 'credit amount', 'cr_amount', 'credit_amount',
+    'credit value', 'cr value', 'credit_value', 'cr_value',
+    'credit total', 'credit side', 'credit_total', 'credit_side',
+    'lc credit', 'local credit', 'lc_credit', 'local_credit',
+    'credit (usd)', 'credit (gbp)', 'credit (eur)',
+  ],
+
   'Posting Date': [
     'posting date', 'posting_date', 'postingdate',
     'post_date', 'post date', 'postdate',
@@ -98,6 +114,9 @@ export const REQUIRED_COLUMNS = [
 
 // Additional columns that activate double-entry mode when both are present
 export const DOUBLE_ENTRY_COLUMNS = ['Journal ID', 'Debit/Credit']
+
+// Columns that, when both present and numeric, trigger Format B/C amount merging
+export const SPLIT_AMOUNT_COLUMNS = ['Debit Amount', 'Credit Amount']
 
 /**
  * Given a list of raw headers, returns a map of canonical name → matched header.

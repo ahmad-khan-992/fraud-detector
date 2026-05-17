@@ -49,6 +49,7 @@ export function AuditProvider({ children }) {
     file, rows, headers, missingColumns, columnMap, dataIssues,
     loading, fileError, parseError, fileWarning,
     sheetNames, selectedSheet, selectSheet, applyManualMapping,
+    amountFormat, splitInfo, signConvention, swapSignConvention,
     processFile, reset: resetFile,
   } = useFileParser()
 
@@ -152,7 +153,7 @@ export function AuditProvider({ children }) {
   // Mark results stale when any filter or config changes after tests have run
   useEffect(() => {
     if (hasRunRef.current) setResultsDirty(true)
-  }, [dateFrom, dateTo, holidays, maxAmount, testConfig, offHoursConfig])
+  }, [dateFrom, dateTo, holidays, maxAmount, testConfig, offHoursConfig, signConvention])
 
   const handleReset = useCallback(() => {
     resetFile()
@@ -168,6 +169,7 @@ export function AuditProvider({ children }) {
     setPreFlightError(null)
     setTransactionCount(0)
     hasRunRef.current = false
+    // Note: signConvention persists in sessionStorage intentionally
   }, [resetFile, resetTests])
 
   const loadSession = useCallback((session) => {
@@ -194,6 +196,7 @@ export function AuditProvider({ children }) {
       holidays, addHoliday, removeHoliday, updateHolidayLabel, clearHolidays,
       maxAmount, setMaxAmount,
       isDoubleEntry, invalidDCCount, preFlightError, transactionCount,
+      amountFormat, splitInfo, signConvention, swapSignConvention,
     }}>
       {children}
     </AuditContext.Provider>

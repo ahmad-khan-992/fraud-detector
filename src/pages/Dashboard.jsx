@@ -52,6 +52,7 @@ export default function Dashboard() {
     testConfig, setTestConfig,
     offHoursConfig, setOffHoursConfig,
     isDoubleEntry, invalidDCCount, preFlightError, transactionCount,
+    amountFormat, splitInfo, signConvention, swapSignConvention,
   } = useAudit()
 
   const [demoError, setDemoError] = useState(null)
@@ -159,7 +160,134 @@ export default function Dashboard() {
             dataIssues={dataIssues}
             applyManualMapping={applyManualMapping}
             sampleRows={rows.slice(0, 5)}
+            amountFormat={amountFormat}
+            splitInfo={splitInfo}
           />
+
+          {/* ── Amount format banners ── */}
+          {amountFormat === 'A' && isColumnValid && (
+            <div className="flex items-start gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+              <p className="text-xs text-slate-500">
+                Single Amount column detected — amounts used as-is. Negative values treated as credits.
+              </p>
+            </div>
+          )}
+
+          {amountFormat === 'BC' && splitInfo && (
+            <div className="px-5 py-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-emerald-800">
+                    Separate Debit and Credit columns detected — merged into a single signed Amount column.
+                  </p>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    {signConvention === 'debit_positive'
+                      ? 'Debits are positive (+), Credits are negative (−).'
+                      : 'Credits are positive (+), Debits are negative (−).'
+                    }
+                    {' '}{(rows.length - (splitInfo.ambiguousCount || 0)).toLocaleString()} rows merged successfully.
+                    {splitInfo.ambiguousCount > 0 && (
+                      <span className="ml-1 font-medium text-amber-700">
+                        {splitInfo.ambiguousCount} ambiguous rows excluded.
+                      </span>
+                    )}
+                    {splitInfo.negativeContraCount > 0 && (
+                      <span className="ml-1 text-slate-600">
+                        {splitInfo.negativeContraCount} negative values treated as contra entries.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pl-8">
+                <span className="text-xs text-emerald-700">Sign convention:</span>
+                <button
+                  onClick={swapSignConvention}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 3M21 7.5H7.5" />
+                  </svg>
+                  Swap (use {signConvention === 'debit_positive' ? 'Credit = +' : 'Debit = +'})
+                </button>
+                <span className="text-[11px] text-emerald-600">
+                  Current: {signConvention === 'debit_positive' ? 'Debit = + / Credit = −' : 'Credit = + / Debit = −'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {amountFormat === 'partial' && splitInfo?.warning && (
+            <div className="flex items-start gap-3 px-5 py-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+              <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-sm text-amber-800">{splitInfo.warning}</p>
+            </div>
+          )}
+
+          {amountFormat === 'BC' && splitInfo?.warnings?.map((w, i) => (
+            <div key={i} className="flex items-start gap-3 px-5 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-xs text-amber-800">{w}</p>
+            </div>
+          ))}
+
+          {/* Format B/C merged preview (first 5 rows) */}
+          {amountFormat === 'BC' && rows.length > 0 && (
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-white border-b border-slate-100 flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-700">Amount Merge Preview</span>
+                <span className="text-[11px] text-slate-400">first 5 rows</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 whitespace-nowrap">Debit Amount ← {splitInfo?.debitHeader}</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 whitespace-nowrap">Credit Amount ← {splitInfo?.creditHeader}</th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 whitespace-nowrap">→ Merged Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-100">
+                    {rows.slice(0, 5).map((row, i) => {
+                      const d = row['Debit Amount']
+                      const c = row['Credit Amount']
+                      const a = row['Amount']
+                      const isAmbiguous = row['_amountAmbiguous']
+                      const empty = v => v === '' || v === null || v === undefined
+                      return (
+                        <tr key={i} className={isAmbiguous ? 'bg-amber-50' : ''}>
+                          <td className="px-3 py-1.5 font-mono text-slate-600">
+                            {empty(d) ? <span className="text-slate-300">—</span> : Number(d).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-1.5 font-mono text-slate-600">
+                            {empty(c) ? <span className="text-slate-300">—</span> : Number(c).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-1.5 font-mono font-semibold">
+                            {isAmbiguous
+                              ? <span className="text-amber-600">⚠ Ambiguous</span>
+                              : a === 0
+                                ? <span className="text-slate-400">0</span>
+                                : <span className={a > 0 ? 'text-emerald-700' : 'text-red-600'}>{a > 0 ? '+' : ''}{a?.toLocaleString()}</span>
+                            }
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Double-entry format detection banners */}
           {isDoubleEntry && transactionCount > 0 && (
