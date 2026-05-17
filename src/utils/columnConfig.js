@@ -3,6 +3,18 @@
  * All aliases are lowercase — matching is case-insensitive and ignores leading/trailing whitespace.
  */
 export const COLUMN_ALIASES = {
+  'Journal ID': [
+    'journal id', 'journal_id', 'journalid',
+    'doc no', 'document number', 'document no', 'document_number', 'document_no',
+    'journal no', 'journal number', 'journal_no', 'journal_number',
+    'entry no', 'entry number', 'entry_no', 'entry_number',
+    'reference no', 'ref no', 'ref_no', 'reference_no',
+    'transaction id', 'trans id', 'transaction_id', 'trans_id',
+    'voucher no', 'voucher number', 'voucher_no', 'voucher_number',
+    'je number', 'je no', 'je_number', 'je_no',
+    'source document', 'source_document',
+  ],
+
   'Account Number': [
     'account number', 'account_number', 'accountnumber',
     'acc_no', 'accno', 'acct_no', 'acct no',
@@ -18,7 +30,7 @@ export const COLUMN_ALIASES = {
     'entry_amount', 'entry amount',
     'je_amount', 'je amount',
     'net_amount', 'net amount',
-    'value', 'debit_credit', 'debit credit',
+    'value',
   ],
 
   'Posting Date': [
@@ -43,6 +55,26 @@ export const COLUMN_ALIASES = {
     'val_date', 'val date',
   ],
 
+  'User': [
+    'user', 'username', 'user_name', 'user name',
+    'userid', 'user_id', 'user id',
+    'posted_by', 'posted by',
+    'created_by', 'created by',
+    'entered_by', 'entered by',
+    'prepared_by', 'prepared by', 'preparer',
+    'operator', 'approver',
+    'clerk', 'accountant',
+  ],
+
+  'Debit/Credit': [
+    'debit/credit', 'debit credit', 'debit_credit',
+    'd/c', 'dc', 'dr/cr',
+    'type', 'entry type', 'entry_type',
+    'posting type', 'posting_type',
+    'line type', 'line_type',
+    'indicator', 'posting key', 'posting_key',
+  ],
+
   'JE Narration': [
     'je narration', 'je_narration', 'jenarration',
     'narration',
@@ -57,20 +89,15 @@ export const COLUMN_ALIASES = {
     'remarks', 'comment', 'comments',
     'note', 'notes',
   ],
-
-  'User': [
-    'user', 'username', 'user_name', 'user name',
-    'userid', 'user_id', 'user id',
-    'posted_by', 'posted by',
-    'created_by', 'created by',
-    'entered_by', 'entered by',
-    'prepared_by', 'prepared by', 'preparer',
-    'operator', 'approver',
-    'clerk', 'accountant',
-  ],
 }
 
-export const REQUIRED_COLUMNS = Object.keys(COLUMN_ALIASES)
+// Columns required for basic (single-line) analysis
+export const REQUIRED_COLUMNS = [
+  'Account Number', 'Amount', 'Posting Date', 'Effective Date', 'User', 'JE Narration',
+]
+
+// Additional columns that activate double-entry mode when both are present
+export const DOUBLE_ENTRY_COLUMNS = ['Journal ID', 'Debit/Credit']
 
 /**
  * Given a list of raw headers, returns a map of canonical name → matched header.

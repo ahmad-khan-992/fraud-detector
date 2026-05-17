@@ -1,3 +1,5 @@
+import { classifyAccount } from './doubleEntry'
+
 function getField(row, fieldName) {
   const target = fieldName.trim().toLowerCase()
   const key = Object.keys(row).find(k => k.trim().toLowerCase() === target)
@@ -48,6 +50,10 @@ export const REASON_KEYS = {
   'User Concentration Risk':          'userConcentration',
   'Off-Hours Posting':                'offHoursPosting',
   'Duplicate Entry':                  'duplicateEntry',
+  'Orphaned Entry':                   'orphanedEntry',
+  'Unbalanced Entry':                 'unbalancedEntry',
+  'SoD Violation':                    'sodViolation',
+  'Unusual Account Combination':      'unusualAccountCombo',
 }
 
 export function buildTranslatedExplanation(reasons, t) {
@@ -88,6 +94,11 @@ export const RISK_SCORE_MAP = {
   'Off-Hours Posting':                 2,
   // New: duplicate detection (#18)
   'Duplicate Entry':                   5,
+  // Double-entry tests (24–26 + orphan pre-flight)
+  'Orphaned Entry':                    6,   // HIGH
+  'Unbalanced Entry':                  12,  // CRITICAL
+  'SoD Violation':                     12,  // CRITICAL
+  'Unusual Account Combination':       7,   // HIGH default; CRITICAL patterns use _score override
 }
 
 export function getRiskLevel(score) {
@@ -125,6 +136,10 @@ export function buildExplanation(reasons) {
     'User Concentration Risk':          'the posting user accounts for a disproportionately large share of activity',
     'Off-Hours Posting':                'the entry was posted outside normal business hours',
     'Duplicate Entry':                  'this entry appears to be a duplicate of another row',
+    'Orphaned Entry':                   'this Journal ID appears on only one side of the ledger with no matching counterpart',
+    'Unbalanced Entry':                 'the total debit amount does not equal the total credit amount for this journal entry',
+    'SoD Violation':                    'the same user posted both the debit and credit sides of this entry, violating segregation of duties',
+    'Unusual Account Combination':      'the debit and credit account pairing matches a known suspicious pattern',
   }
 
   const parts = reasons.map(r => PHRASES[r] || r.toLowerCase())
@@ -675,15 +690,21 @@ export function testOffHours(rows, offHoursConfig = {}) {
 }
 
 // ─── Test 22: Duplicate Entries ───────────────────────────────────────────────
+// In double-entry mode the transaction object has 'DR Account' + 'CR Account';
+// use both in the dedup key so cross-side false positives are avoided.
 export function testDuplicateEntries(rows) {
   const seen = {}
   for (let i = 0; i < rows.length; i++) {
-    const acct   = String(getField(rows[i], 'Account Number') ?? '').trim()
+    const drAcct = String(rows[i]['DR Account'] || '').trim()
+    const crAcct = String(rows[i]['CR Account'] || '').trim()
+    const acct   = drAcct || String(getField(rows[i], 'Account Number') ?? '').trim()
     const amount = getField(rows[i], 'Amount')
     const date   = getField(rows[i], 'Posting Date')
     const user   = String(getField(rows[i], 'User') ?? '').trim()
     if (!acct || amount === undefined || amount === null || amount === '' || !date) continue
-    const key = `${acct}||${amount}||${String(date)}||${user}`
+    const key = drAcct
+      ? `${drAcct}||${crAcct}||${amount}||${String(date)}||${user}`
+      : `${acct}||${amount}||${String(date)}||${user}`
     if (!seen[key]) seen[key] = []
     seen[key].push(i)
   }
@@ -694,6 +715,114 @@ export function testDuplicateEntries(rows) {
       for (const i of indices) {
         flags.push({ rowIndex: i, row: rows[i], reason: 'Duplicate Entry' })
       }
+    }
+  }
+  return flags
+}
+
+// ─── Test 23 (DE01): Orphaned Entry ───────────────────────────────────────────
+// Runs only in double-entry mode. Flags transactions where no counterpart side exists.
+export function testOrphanedEntries(rows) {
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i]['_isOrphaned'] === true) {
+      flags.push({ rowIndex: i, row: rows[i], reason: 'Orphaned Entry' })
+    }
+  }
+  return flags
+}
+
+// ─── Test 24 (DE02): Unbalanced Entry ─────────────────────────────────────────
+export function testUnbalancedEntry(rows) {
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    const drTotal = rows[i]['_drTotal']
+    const crTotal = rows[i]['_crTotal']
+    if (drTotal === undefined || crTotal === undefined) continue
+    if (Math.abs(drTotal - crTotal) > 0.01) {
+      const diff = Math.abs(drTotal - crTotal).toFixed(2)
+      flags.push({
+        rowIndex: i,
+        row: rows[i],
+        reason: 'Unbalanced Entry',
+        _detail: `DR total: ${drTotal.toFixed(2)} | CR total: ${crTotal.toFixed(2)} | Difference: ${diff}`,
+      })
+    }
+  }
+  return flags
+}
+
+// ─── Test 25 (DE03): Segregation of Duties Violation ──────────────────────────
+export function testSoDViolation(rows) {
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    const drUsers = rows[i]['_drUsers']
+    const crUsers = rows[i]['_crUsers']
+    if (!Array.isArray(drUsers) || !Array.isArray(crUsers)) continue
+    const matchedUser = drUsers.find(u => crUsers.includes(u))
+    if (matchedUser) {
+      const drAcct = rows[i]['DR Account'] || rows[i]['Account Number'] || ''
+      const crAcct = rows[i]['CR Account'] || ''
+      flags.push({
+        rowIndex: i,
+        row: rows[i],
+        reason: 'SoD Violation',
+        _detail: `User ${matchedUser} posted both DR (${drAcct}) and CR (${crAcct}) on this entry with no second approver`,
+      })
+    }
+  }
+  return flags
+}
+
+// ─── Test 26 (DE04): Unusual Account Combination ──────────────────────────────
+export function testUnusualAccountCombination(rows) {
+  const flags = []
+  for (let i = 0; i < rows.length; i++) {
+    const drAcct = String(rows[i]['DR Account'] || rows[i]['Account Number'] || '').trim()
+    const crAcct = String(rows[i]['CR Account'] || '').trim()
+    if (!drAcct && !crAcct) continue
+
+    const drType = classifyAccount(drAcct)
+    const crType = classifyAccount(crAcct)
+
+    // Pattern 1 — Reversed Cash Flow (CRITICAL)
+    if (drType === 'expense' && crType === 'cash') {
+      flags.push({
+        rowIndex: i, row: rows[i], reason: 'Unusual Account Combination',
+        _score: 12, _detail: 'Cash credited against Expense — reversed flow',
+      })
+      continue
+    }
+
+    // Pattern 3 — Retained Earnings Manual Posting (CRITICAL)
+    if (drType === 'retainedEarnings' || crType === 'retainedEarnings') {
+      flags.push({
+        rowIndex: i, row: rows[i], reason: 'Unusual Account Combination',
+        _score: 12, _detail: 'Manual posting to Retained Earnings — high manipulation risk',
+      })
+      continue
+    }
+
+    // Pattern 2 — Uncleared Suspense (HIGH)
+    const hasSuspense = drType === 'suspense' || crType === 'suspense'
+      || drAcct.toLowerCase().includes('suspense')
+      || crAcct.toLowerCase().includes('suspense')
+    if (hasSuspense) {
+      flags.push({
+        rowIndex: i, row: rows[i], reason: 'Unusual Account Combination',
+        _score: 7, _detail: 'Suspense account entry — no clearing entry within 30 days',
+      })
+      continue
+    }
+
+    // Pattern 4 — Intercompany Mismatch (HIGH)
+    const drIsInterco = drType === 'intercompany' || drAcct.toLowerCase().includes('interco')
+    const crIsInterco = crType === 'intercompany' || crAcct.toLowerCase().includes('interco')
+    if (drIsInterco !== crIsInterco && (drIsInterco || crIsInterco)) {
+      flags.push({
+        rowIndex: i, row: rows[i], reason: 'Unusual Account Combination',
+        _score: 7, _detail: 'Intercompany account paired with non-intercompany account',
+      })
     }
   }
   return flags
@@ -761,6 +890,7 @@ export function runAllTests(rows, options = {}) {
   const splittingThreshold = options.splittingThreshold ?? 10000
   const roundNumberMin     = options.roundNumberMin     ?? 1000
   const offHoursConfig     = options.offHoursConfig     ?? {}
+  const isDoubleEntry      = options.isDoubleEntry      ?? false
 
   const allFlags = [
     ...testZeroAmount(rows),
@@ -785,22 +915,34 @@ export function runAllTests(rows, options = {}) {
     ...testUserConcentration(rows),
     ...testOffHours(rows, offHoursConfig),
     ...testDuplicateEntries(rows),
+    ...(isDoubleEntry ? testOrphanedEntries(rows)            : []),
+    ...(isDoubleEntry ? testUnbalancedEntry(rows)            : []),
+    ...(isDoubleEntry ? testSoDViolation(rows)               : []),
+    ...(isDoubleEntry ? testUnusualAccountCombination(rows)  : []),
   ]
 
   const byIndex = new Map()
   for (const flag of allFlags) {
     if (!byIndex.has(flag.rowIndex)) {
-      byIndex.set(flag.rowIndex, { rowIndex: flag.rowIndex, row: flag.row, reasons: [] })
+      byIndex.set(flag.rowIndex, {
+        rowIndex: flag.rowIndex, row: flag.row,
+        reasons: [], flagDetails: {}, customScores: {},
+      })
     }
     const entry = byIndex.get(flag.rowIndex)
     if (!entry.reasons.includes(flag.reason)) entry.reasons.push(flag.reason)
+    if (flag._detail) entry.flagDetails[flag.reason] = flag._detail
+    if (flag._score) {
+      entry.customScores[flag.reason] = Math.max(flag._score, entry.customScores[flag.reason] || 0)
+    }
   }
 
   const entries = Array.from(byIndex.values())
     .sort((a, b) => a.rowIndex - b.rowIndex)
     .map(entry => {
-      let riskScore = entry.reasons.reduce((sum, r) => sum + (RISK_SCORE_MAP[r] || 1), 0)
-      // #12 Confidence multiplier: incomplete data reduces confidence in other flags
+      let riskScore = entry.reasons.reduce(
+        (sum, r) => sum + (entry.customScores[r] ?? RISK_SCORE_MAP[r] ?? 1), 0
+      )
       if (entry.reasons.includes('Null / Missing Field')) {
         riskScore = Math.round(riskScore * 0.8)
       }

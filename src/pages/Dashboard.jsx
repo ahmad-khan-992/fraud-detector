@@ -51,6 +51,7 @@ export default function Dashboard() {
     maxAmount, setMaxAmount,
     testConfig, setTestConfig,
     offHoursConfig, setOffHoursConfig,
+    isDoubleEntry, invalidDCCount, preFlightError, transactionCount,
   } = useAudit()
 
   const [demoError, setDemoError] = useState(null)
@@ -159,6 +160,41 @@ export default function Dashboard() {
             applyManualMapping={applyManualMapping}
             sampleRows={rows.slice(0, 5)}
           />
+
+          {/* Double-entry format detection banners */}
+          {isDoubleEntry && transactionCount > 0 && (
+            <div className="flex items-start gap-3 px-5 py-3.5 bg-indigo-50 border border-indigo-200 rounded-xl">
+              <svg className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-indigo-800">
+                <span className="font-semibold">{rows.length} lines → {transactionCount} transactions detected.</span>
+                {' '}3 additional tests activated: Unbalanced Entry, SoD Violation, Unusual Account Combination.
+                {invalidDCCount > 0 && (
+                  <span className="ml-2 text-amber-700 font-medium">{invalidDCCount} rows excluded — invalid Debit/Credit value.</span>
+                )}
+              </p>
+            </div>
+          )}
+          {!isDoubleEntry && isColumnValid && (
+            <div className="flex items-start gap-3 px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <svg className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+              <p className="text-xs text-slate-500">
+                Single-line format detected. Upload in double-entry format to unlock 3 additional tests including SoD detection →
+              </p>
+            </div>
+          )}
+          {preFlightError && (
+            <div className="flex items-start gap-3 px-5 py-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+              <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+              <p className="text-sm text-amber-800">{preFlightError}</p>
+            </div>
+          )}
+
           <DataPreview rows={rows} headers={headers} totalRows={rows.length} />
 
           {/* Date range filter */}
@@ -290,7 +326,15 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <FraudResults flaggedEntries={flaggedEntries} holidayMap={holidayMap} />
+              {!isDoubleEntry && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                  </svg>
+                  Running in single-line mode. 3 tests unavailable. Add Journal ID and Debit/Credit columns to unlock full analysis.
+                </div>
+              )}
+              <FraudResults flaggedEntries={flaggedEntries} holidayMap={holidayMap} isDoubleEntry={isDoubleEntry} />
             </>
           )}
         </>

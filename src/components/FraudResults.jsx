@@ -28,6 +28,10 @@ const REASON_BADGE = {
   'User Concentration Risk':           'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200',
   'Off-Hours Posting':                 'bg-stone-100 text-stone-700 border-stone-200',
   'Duplicate Entry':                   'bg-gray-200 text-gray-800 border-gray-300',
+  'Orphaned Entry':                    'bg-amber-200 text-amber-900 border-amber-400',
+  'Unbalanced Entry':                  'bg-red-300 text-red-900 border-red-500',
+  'SoD Violation':                     'bg-red-300 text-red-900 border-red-500',
+  'Unusual Account Combination':       'bg-orange-200 text-orange-900 border-orange-400',
 }
 
 const RISK_ROW = {
@@ -253,15 +257,22 @@ const AUDIT_PROCEDURES = {
   'Weekend Entry (Sunday)':       ['Confirm authorization for weekend posting', 'Review if business operations required this entry', 'Check for override indicators in the posting log'],
   'Repeating Digit Amount':       ['Verify amount against source document', 'Confirm amount is not a test or placeholder value', 'Review history of similar repeating-digit entries'],
   'Unusually Low Amount (bottom 5%)': ['Confirm the amount is correct and complete', 'Check for potential partial posting or rounding error', 'Obtain supporting documentation'],
+  'Orphaned Entry':              ['Locate the missing counterpart entry in the general ledger', 'Verify with preparer whether a matching DR or CR was excluded from the export', 'Reconcile the orphaned entry to source documents and sub-ledger'],
+  'Unbalanced Entry':            ['Obtain the original source document and reconcile to sub-ledger', 'Verify the amounts on both DR and CR sides of this journal entry', 'Escalate to the financial controller if the discrepancy cannot be explained'],
+  'SoD Violation':               ['Obtain approval documentation for this journal entry', 'Verify whether a second authoriser exists outside the system', 'Escalate to internal audit if self-approved above materiality threshold'],
+  'Unusual Account Combination': ['Obtain business justification for this DR/CR account pairing', 'Verify with the accounting team that this combination is intentional', 'Cross-reference to approved journal entry templates and chart of accounts policy'],
 }
 
 function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
   if (!entry) return null
-  const { row, rowIndex, reasons, riskLevel, riskScore } = entry
+  const { row, rowIndex, reasons, riskLevel, riskScore, flagDetails = {} } = entry
 
   const procedures   = [...new Set(reasons.flatMap(r => AUDIT_PROCEDURES[r] || []))]
   const holidayLabel = reasons.includes('Holiday Entry') ? getHolidayLabel(row, holidayMap) : null
   const user         = getField(row, 'User') || '—'
+  const drAccount    = row['DR Account'] || ''
+  const crAccount    = row['CR Account'] || ''
+  const isDE         = Boolean(drAccount || crAccount)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
@@ -281,7 +292,10 @@ function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
               {t('fraudResults.detailRowInfo', { row: rowIndex + 1, risk: t('risk.' + riskLevel), score: riskScore })}
             </p>
             <p className={`text-sm font-semibold mt-0.5 ${riskLevel === 'Critical' ? 'text-white' : 'text-slate-800'}`}>
-              {getField(row, 'Account Number') || 'Unknown Account'} — {formatAmount(getField(row, 'Amount'))}
+              {isDE
+                ? `DR: ${drAccount || '—'} / CR: ${crAccount || '—'}`
+                : (getField(row, 'Account Number') || 'Unknown Account')
+              } — {formatAmount(getField(row, 'Amount'))}
             </p>
           </div>
           <button onClick={onClose} className={`p-1.5 rounded-lg hover:bg-black/10 transition-colors ${riskLevel === 'Critical' ? 'text-white' : 'text-slate-500'}`}>
@@ -328,6 +342,11 @@ function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
                 />
               ))}
             </div>
+            {reasons.map(r => flagDetails[r] ? (
+              <p key={r} className="mt-1.5 text-xs text-slate-600 px-2 py-1.5 bg-slate-50 rounded border border-slate-100 font-mono">
+                {flagDetails[r]}
+              </p>
+            ) : null)}
             {holidayLabel && (
               <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-rose-50 rounded-lg border border-rose-100">
                 <svg className="w-3.5 h-3.5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -343,7 +362,7 @@ function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">{t('fraudResults.detailFieldsTitle')}</p>
             <div className="rounded-xl border border-slate-100 overflow-hidden">
-              {Object.entries(row).map(([k, v], i) => (
+              {Object.entries(row).filter(([k]) => !k.startsWith('_')).map(([k, v], i) => (
                 <div key={k} className={`flex gap-3 px-3 py-2 text-xs ${i % 2 === 0 ? 'bg-slate-50' : 'bg-white'}`}>
                   <span className="font-medium text-slate-500 w-36 shrink-0 truncate">{k}</span>
                   <span className="text-slate-800 break-words min-w-0">
@@ -374,7 +393,7 @@ function DetailPanel({ entry, onClose, t, holidayMap, onFilterUser }) {
   )
 }
 
-export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
+export default function FraudResults({ flaggedEntries, holidayMap = {}, isDoubleEntry = false }) {
   const { t } = useLanguage()
   const [page, setPage]                   = useState(0)
   const [testFilter, setTestFilter]       = useState('')
@@ -419,7 +438,11 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
     { label: t('fraudResults.testDormant'),        value: 'Dormant Account Reactivation' },
     { label: t('fraudResults.testUserConc'),       value: 'User Concentration Risk' },
     { label: t('fraudResults.testOffHours'),       value: 'Off-Hours Posting' },
-    { label: t('fraudResults.testDuplicate'),      value: 'Duplicate Entry' },
+    { label: t('fraudResults.testDuplicate'),       value: 'Duplicate Entry' },
+    { label: t('fraudResults.testOrphaned'),        value: 'Orphaned Entry' },
+    { label: t('fraudResults.testUnbalanced'),      value: 'Unbalanced Entry' },
+    { label: t('fraudResults.testSoD'),             value: 'SoD Violation' },
+    { label: t('fraudResults.testUnusualAccount'),  value: 'Unusual Account Combination' },
   ]
 
   const filtered = useMemo(() => {
@@ -576,7 +599,7 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
           </button>
 
           <button
-            onClick={() => exportFraudReport(flaggedEntries, 'Fraud_Report.xlsx', holidayMap)}
+            onClick={() => exportFraudReport(flaggedEntries, 'Fraud_Report.xlsx', holidayMap, isDoubleEntry)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -647,9 +670,14 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
               <th onClick={() => handleSort('row')} className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-800">
                 {t('fraudResults.colRow')}<SortIcon col="row" />
               </th>
-              <th className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap">
-                {t('fraudResults.colAccount')}
-              </th>
+              {isDoubleEntry ? (
+                <>
+                  <th className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap">{t('fraudResults.colDrAccount')}</th>
+                  <th className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap">{t('fraudResults.colCrAccount')}</th>
+                </>
+              ) : (
+                <th className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap">{t('fraudResults.colAccount')}</th>
+              )}
               <th onClick={() => handleSort('amount')} className="text-left py-2 pr-3 font-semibold text-slate-500 whitespace-nowrap cursor-pointer select-none hover:text-slate-800">
                 {t('fraudResults.colAmount')}<SortIcon col="amount" />
               </th>
@@ -679,7 +707,7 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
                 if (item.type === 'header') {
                   return (
                     <tr key={`h-${item.user}-${idx}`} className="bg-violet-50 border-b border-violet-100">
-                      <td colSpan={9} className="py-1.5 px-2">
+                      <td colSpan={isDoubleEntry ? 10 : 9} className="py-1.5 px-2">
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 rounded-full bg-violet-200 flex items-center justify-center shrink-0">
                             <svg className="w-3 h-3 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -702,11 +730,11 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
                   )
                 }
                 const { entry } = item
-                return <EntryRow key={`e-${entry.rowIndex}`} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} />
+                return <EntryRow key={`e-${entry.rowIndex}`} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} isDoubleEntry={isDoubleEntry} />
               })
             ) : (
               pageEntries.map(entry => (
-                <EntryRow key={entry.rowIndex} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} />
+                <EntryRow key={entry.rowIndex} entry={entry} t={t} holidayMap={holidayMap} onSelect={setDetailEntry} isDoubleEntry={isDoubleEntry} />
               ))
             )}
           </tbody>
@@ -745,7 +773,7 @@ export default function FraudResults({ flaggedEntries, holidayMap = {} }) {
 }
 
 // Extracted to avoid re-creating the function inside the map
-function EntryRow({ entry, t, holidayMap, onSelect }) {
+function EntryRow({ entry, t, holidayMap, onSelect, isDoubleEntry }) {
   const { rowIndex, row, reasons, riskLevel, riskScore } = entry
   const explanation = buildTranslatedExplanation(reasons, t)
   return (
@@ -754,7 +782,14 @@ function EntryRow({ entry, t, holidayMap, onSelect }) {
       className={`border-b border-slate-50 transition-colors cursor-pointer ${RISK_ROW[riskLevel] || ''}`}
     >
       <td className="py-2.5 pr-3 text-slate-400 font-mono tabular-nums">{rowIndex + 1}</td>
-      <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">{getField(row, 'Account Number') || '—'}</td>
+      {isDoubleEntry ? (
+        <>
+          <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">{row['DR Account'] || '—'}</td>
+          <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">{row['CR Account'] || '—'}</td>
+        </>
+      ) : (
+        <td className="py-2.5 pr-3 font-medium text-slate-800 whitespace-nowrap">{getField(row, 'Account Number') || '—'}</td>
+      )}
       <td className="py-2.5 pr-3 text-slate-700 tabular-nums whitespace-nowrap">{formatAmount(getField(row, 'Amount'))}</td>
       <td className="py-2.5 pr-3 text-slate-700 whitespace-nowrap">{formatDate(getField(row, 'Posting Date'))}</td>
       <td className="py-2.5 pr-3 whitespace-nowrap max-w-[110px]">

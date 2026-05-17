@@ -114,7 +114,7 @@ function RunningState({ t }) {
 }
 
 export default function ReportPage() {
-  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows, holidays } = useAudit()
+  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows, holidays, isDoubleEntry, transactionCount } = useAudit()
   const { t } = useLanguage()
 
   if (isRunning) return <RunningState t={t} />
@@ -141,11 +141,13 @@ export default function ReportPage() {
       pctTotal:   total  > 0 ? ((count / total)  * 100).toFixed(1) : '0',
     }))
 
-  const TABLE1_HEADERS = [
-    t('reportPage.colRow'), t('reportPage.colAccount'), t('reportPage.colAmount'),
-    t('reportPage.colPostingDate'), t('reportPage.colUser'), t('reportPage.colRisk'),
-    t('reportPage.colScore'), t('reportPage.colTriggered'),
-  ]
+  const TABLE1_HEADERS = isDoubleEntry
+    ? [t('reportPage.colRow'), 'DR Account', 'CR Account', t('reportPage.colAmount'),
+       t('reportPage.colPostingDate'), t('reportPage.colUser'), t('reportPage.colRisk'),
+       t('reportPage.colScore'), t('reportPage.colTriggered')]
+    : [t('reportPage.colRow'), t('reportPage.colAccount'), t('reportPage.colAmount'),
+       t('reportPage.colPostingDate'), t('reportPage.colUser'), t('reportPage.colRisk'),
+       t('reportPage.colScore'), t('reportPage.colTriggered')]
 
   const TABLE2_HEADERS = [
     t('reportPage.colTestName'), t('reportPage.colFlags'),
@@ -168,10 +170,14 @@ export default function ReportPage() {
             <p className="text-sm text-slate-500 mt-1">
               {t('reportPage.subtitle')} · {fileName}
             </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Format: {isDoubleEntry ? 'Double-entry' : 'Single-line'} |{' '}
+              {isDoubleEntry ? `${transactionCount || total} transactions` : `${total} entries`} analysed
+            </p>
           </div>
           <div className="flex gap-2 shrink-0 no-print">
             <button
-              onClick={() => exportFraudReport(flaggedEntries, `Fraud_Report_${Date.now()}.xlsx`, holidayMap)}
+              onClick={() => exportFraudReport(flaggedEntries, `Fraud_Report_${Date.now()}.xlsx`, holidayMap, isDoubleEntry)}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -296,7 +302,14 @@ export default function ReportPage() {
               {highRiskEntries.map(({ rowIndex, row, reasons, riskLevel, riskScore }) => (
                 <tr key={rowIndex} className={`border-b border-slate-50 ${RISK_ROW[riskLevel] || ''}`}>
                   <td className="py-2.5 pr-4 text-slate-400 font-mono tabular-nums">{rowIndex + 1}</td>
-                  <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap">{getField(row, 'Account Number') || '—'}</td>
+                  {isDoubleEntry ? (
+                    <>
+                      <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap">{row['DR Account'] || '—'}</td>
+                      <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap">{row['CR Account'] || '—'}</td>
+                    </>
+                  ) : (
+                    <td className="py-2.5 pr-4 font-medium text-slate-800 whitespace-nowrap">{getField(row, 'Account Number') || '—'}</td>
+                  )}
                   <td className="py-2.5 pr-4 text-slate-700 tabular-nums whitespace-nowrap">{formatAmount(getField(row, 'Amount'))}</td>
                   <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">{formatDate(getField(row, 'Posting Date'))}</td>
                   <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap max-w-[90px] truncate">{getField(row, 'User') || '—'}</td>
@@ -393,6 +406,54 @@ export default function ReportPage() {
           </table>
         </div>
       </div>
+
+      {/* Account Pair Analysis — double-entry mode only */}
+      {isDoubleEntry && (() => {
+        const pairCounts = {}
+        for (const { row, reasons } of flaggedEntries) {
+          const drAcct = row['DR Account'] || ''
+          const crAcct = row['CR Account'] || ''
+          if (!drAcct && !crAcct) continue
+          const key = `${drAcct} → ${crAcct}`
+          pairCounts[key] = (pairCounts[key] || 0) + 1
+        }
+        const topPairs = Object.entries(pairCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)
+        if (topPairs.length === 0) return null
+        return (
+          <>
+            <Divider label="Section 4 — Account Pair Analysis" />
+            <div className="card">
+              <h3 className="text-sm font-semibold text-slate-900 mb-1">Top 10 Flagged DR/CR Combinations</h3>
+              <p className="text-xs text-slate-500 mb-4">Account pairings that appear most frequently across all flagged transactions</p>
+              <div className="overflow-x-auto -mx-6 px-6">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left pb-2.5 pr-4 font-semibold text-slate-500">#</th>
+                      <th className="text-left pb-2.5 pr-4 font-semibold text-slate-500">DR Account</th>
+                      <th className="text-left pb-2.5 pr-4 font-semibold text-slate-500">CR Account</th>
+                      <th className="text-left pb-2.5 pr-4 font-semibold text-slate-500">Flags</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topPairs.map(([pair, count], idx) => {
+                      const [dr, cr] = pair.split(' → ')
+                      return (
+                        <tr key={pair} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-2.5 pr-4 text-slate-400 font-mono tabular-nums">{idx + 1}</td>
+                          <td className="py-2.5 pr-4 font-medium text-slate-700">{dr || '—'}</td>
+                          <td className="py-2.5 pr-4 font-medium text-slate-700">{cr || '—'}</td>
+                          <td className="py-2.5 pr-4 text-slate-900 font-semibold tabular-nums">{count}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )
+      })()}
 
       {/* Disclaimer */}
       <div className="px-1 pb-4">

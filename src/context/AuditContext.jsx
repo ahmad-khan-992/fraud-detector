@@ -1,6 +1,8 @@
 import { createContext, useContext, useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import { useFileParser } from '../hooks/useFileParser'
 import { useFraudTests } from '../hooks/useFraudTests'
+import { groupIntoTransactions } from '../utils/doubleEntry'
+import { DOUBLE_ENTRY_COLUMNS } from '../utils/columnConfig'
 
 function parseDate(value) {
   if (value instanceof Date) return isNaN(value.getTime()) ? null : value
@@ -23,7 +25,10 @@ export function AuditProvider({ children }) {
   const [holidays, setHolidays] = useState([])
   const [maxAmount, setMaxAmount] = useState('')
   const [resultsDirty, setResultsDirty] = useState(false)
-  // Configurable test thresholds (#13)
+  const [invalidDCCount, setInvalidDCCount] = useState(0)
+  const [preFlightError, setPreFlightError] = useState(null)
+  const [transactionCount, setTransactionCount] = useState(0)
+
   const [testConfig, setTestConfig] = useState({
     backdateDays:       5,
     narrationMinLen:    5,
@@ -51,6 +56,12 @@ export function AuditProvider({ children }) {
     flaggedEntries, benfordAnalysis, hasRun, isRunning,
     runTests, reset: resetTests, summary, loadResults,
   } = useFraudTests()
+
+  // Derived: whether the uploaded file has both double-entry columns
+  const isDoubleEntry = useMemo(
+    () => DOUBLE_ENTRY_COLUMNS.every(col => col in columnMap),
+    [columnMap]
+  )
 
   const hasRunRef = useRef(false)
   useEffect(() => { hasRunRef.current = hasRun }, [hasRun])
@@ -82,7 +93,6 @@ export function AuditProvider({ children }) {
     return min ? { min, max } : null
   }, [rows])
 
-  // Holiday helpers exposed to components — each holiday is { date: 'YYYY-MM-DD', label: string }
   const addHoliday = useCallback((dateStr, label = '') => {
     setHolidays(prev =>
       prev.some(h => h.date === dateStr)
@@ -96,16 +106,41 @@ export function AuditProvider({ children }) {
   }, [])
 
   const updateHolidayLabel = useCallback((dateStr, label) => {
-    setHolidays(prev => prev.map(h => h.date === dateStr ? { ...h, label: label } : h))
+    setHolidays(prev => prev.map(h => h.date === dateStr ? { ...h, label } : h))
   }, [])
 
   const clearHolidays = useCallback(() => setHolidays([]), [])
 
-  // Wrap runTests: clears dirty flag and passes current options
   const runAudit = useCallback((rowsToRun) => {
     setResultsDirty(false)
-    runTests(rowsToRun, { holidayDates: new Set(holidays.map(h => h.date)), maxAmount, ...testConfig, offHoursConfig })
-  }, [runTests, holidays, maxAmount, testConfig, offHoursConfig])
+    const opts = {
+      holidayDates: new Set(holidays.map(h => h.date)),
+      maxAmount,
+      ...testConfig,
+      offHoursConfig,
+    }
+
+    if (isDoubleEntry) {
+      const { transactions, invalidDCRows, validPairCount } = groupIntoTransactions(rowsToRun)
+      setInvalidDCCount(invalidDCRows.length)
+
+      if (transactions.length > 0 && validPairCount === 0) {
+        // All Journal IDs appear on only one side — fall back to single-line
+        setPreFlightError('No valid double-entry pairs found. Every Journal ID appears on only one side. Running in single-line mode.')
+        setTransactionCount(0)
+        runTests(rowsToRun, { ...opts, isDoubleEntry: false })
+      } else {
+        setPreFlightError(null)
+        setTransactionCount(transactions.length)
+        runTests(transactions, { ...opts, isDoubleEntry: true })
+      }
+    } else {
+      setInvalidDCCount(0)
+      setPreFlightError(null)
+      setTransactionCount(0)
+      runTests(rowsToRun, { ...opts, isDoubleEntry: false })
+    }
+  }, [runTests, holidays, maxAmount, testConfig, offHoursConfig, isDoubleEntry])
 
   // Auto-run when a valid file is parsed (or filteredRows change with nothing run yet)
   useEffect(() => {
@@ -129,6 +164,9 @@ export function AuditProvider({ children }) {
     setMaxAmount('')
     setOffHoursConfig({ startHour: 9, startMin: 0, endHour: 17, endMin: 0, workDays: [1, 2, 3, 4, 5], timezone: '' })
     setResultsDirty(false)
+    setInvalidDCCount(0)
+    setPreFlightError(null)
+    setTransactionCount(0)
     hasRunRef.current = false
   }, [resetFile, resetTests])
 
@@ -155,6 +193,7 @@ export function AuditProvider({ children }) {
       filteredRows, dataDateRange, resultsDirty,
       holidays, addHoliday, removeHoliday, updateHolidayLabel, clearHolidays,
       maxAmount, setMaxAmount,
+      isDoubleEntry, invalidDCCount, preFlightError, transactionCount,
     }}>
       {children}
     </AuditContext.Provider>
