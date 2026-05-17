@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLanguage } from '../context/LanguageContext'
-import { REQUIRED_COLUMNS } from '../utils/columnConfig'
+import { REQUIRED_COLUMNS, OPTIONAL_COLUMNS } from '../utils/columnConfig'
 import { suggestColumnMapping } from '../utils/aiColumnMapping'
 
 function ColChip({ col, present, matchedAs }) {
@@ -327,6 +327,34 @@ export default function ColumnValidation({ headers, missingColumns, columnMap = 
                     present={!missingColumns.includes(col)}
                     matchedAs={columnMap[col]}
                   />
+                )
+              })}
+            </div>
+
+            {/* Optional columns */}
+            <div className="space-y-1">
+              {OPTIONAL_COLUMNS.map(col => {
+                const present   = col in columnMap
+                const matchedAs = columnMap[col]
+                const isAlias   = present && matchedAs && matchedAs !== col
+                return (
+                  <div key={col} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    {present ? (
+                      <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="w-3 h-3 rounded-full border-2 border-slate-300 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[11px] font-semibold text-slate-600">{col}</span>
+                      {isAlias && <span className="ml-1 text-[10px] text-emerald-600 font-mono">{matchedAs}</span>}
+                      {!present && (
+                        <span className="ml-1 text-[10px] text-slate-400">— Not mapped · backdating test will be skipped</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-300 shrink-0">optional</span>
+                  </div>
                 )
               })}
             </div>

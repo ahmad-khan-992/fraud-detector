@@ -891,6 +891,7 @@ export function runAllTests(rows, options = {}) {
   const roundNumberMin     = options.roundNumberMin     ?? 1000
   const offHoursConfig     = options.offHoursConfig     ?? {}
   const isDoubleEntry      = options.isDoubleEntry      ?? false
+  const hasEffectiveDate   = options.hasEffectiveDate   ?? true
 
   const allFlags = [
     ...testZeroAmount(rows),
@@ -900,7 +901,7 @@ export function runAllTests(rows, options = {}) {
     ...testSeldomUsedAccounts(rows),
     ...testRareUsers(rows),
     ...testNullFields(rows),
-    ...testBackdatedEntries(rows, { backdateDays }),
+    ...(hasEffectiveDate ? testBackdatedEntries(rows, { backdateDays }) : []),
     ...testPostdatedEntries(rows),
     ...testAfterYearEnd(rows),
     ...testRepeatingDigits(rows),

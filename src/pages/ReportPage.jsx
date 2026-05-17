@@ -114,7 +114,7 @@ function RunningState({ t }) {
 }
 
 export default function ReportPage() {
-  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows, holidays, isDoubleEntry, transactionCount } = useAudit()
+  const { hasRun, isRunning, summary, flaggedEntries, file, loadedSessionName, rows, holidays, isDoubleEntry, transactionCount, hasEffectiveDate } = useAudit()
   const { t } = useLanguage()
 
   if (isRunning) return <RunningState t={t} />
@@ -405,6 +405,12 @@ export default function ReportPage() {
             </tbody>
           </table>
         </div>
+
+        {!hasEffectiveDate && (
+          <p className="text-[11px] text-slate-400 mt-3 pt-3 border-t border-slate-100">
+            Backdating test — not run (Effective Date column not provided)
+          </p>
+        )}
       </div>
 
       {/* Account Pair Analysis — double-entry mode only */}

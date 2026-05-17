@@ -109,8 +109,11 @@ export const COLUMN_ALIASES = {
 
 // Columns required for basic (single-line) analysis
 export const REQUIRED_COLUMNS = [
-  'Account Number', 'Amount', 'Posting Date', 'Effective Date', 'User', 'JE Narration',
+  'Account Number', 'Amount', 'Posting Date', 'User', 'JE Narration',
 ]
+
+// Columns that enhance analysis when present but never block it
+export const OPTIONAL_COLUMNS = ['Effective Date']
 
 // Additional columns that activate double-entry mode when both are present
 export const DOUBLE_ENTRY_COLUMNS = ['Journal ID', 'Debit/Credit']

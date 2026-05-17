@@ -64,6 +64,8 @@ export function AuditProvider({ children }) {
     [columnMap]
   )
 
+  const hasEffectiveDate = useMemo(() => 'Effective Date' in columnMap, [columnMap])
+
   const hasRunRef = useRef(false)
   useEffect(() => { hasRunRef.current = hasRun }, [hasRun])
 
@@ -119,6 +121,7 @@ export function AuditProvider({ children }) {
       maxAmount,
       ...testConfig,
       offHoursConfig,
+      hasEffectiveDate,
     }
 
     if (isDoubleEntry) {
@@ -197,6 +200,7 @@ export function AuditProvider({ children }) {
       maxAmount, setMaxAmount,
       isDoubleEntry, invalidDCCount, preFlightError, transactionCount,
       amountFormat, splitInfo, signConvention, swapSignConvention,
+      hasEffectiveDate,
     }}>
       {children}
     </AuditContext.Provider>
